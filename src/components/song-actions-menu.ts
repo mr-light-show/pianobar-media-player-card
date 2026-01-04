@@ -57,7 +57,7 @@ export class SongActionsMenu extends LitElement {
 
     .menu-popup {
       position: fixed;
-      background: var(--card-background-color, #fff);
+      background: var(--pmc-card-background);
       border-radius: 12px;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
       padding: 4px;
@@ -94,7 +94,7 @@ export class SongActionsMenu extends LitElement {
     }
 
     .action-button:hover {
-      background: var(--secondary-background-color, rgba(0, 0, 0, 0.05));
+      background: var(--pmc-secondary-background);
     }
 
     .action-button.love:hover {

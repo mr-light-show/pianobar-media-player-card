@@ -8,10 +8,15 @@ export const cardStyles = css`
     --pmc-disabled-text-color: var(--disabled-text-color, #bdbdbd);
     --pmc-background-color: var(--card-background-color, #fff);
     --pmc-border-radius: var(--ha-card-border-radius, 12px);
+    --pmc-card-background: var(--card-background-color, #fff);
+    --pmc-secondary-background: var(--secondary-background-color, rgba(0, 0, 0, 0.05));
+    --pmc-text-primary: var(--text-primary-color, #fff);
+    --pmc-divider: var(--divider-color, rgba(0, 0, 0, 0.1));
     --pmc-artwork-size: 80px;
     --pmc-icon-size: 24px;
     --pmc-button-size: 40px;
     --pmc-card-height: 120px;
+    --pmc-progress-height: 6px;
   }
 
   ha-card {
@@ -23,12 +28,12 @@ export const cardStyles = css`
 
   /* Add padding at bottom when progress bar is shown */
   ha-card.has-progress {
-    padding-bottom: var(--pmc-progress-height, 4px);
+    padding-bottom: var(--pmc-progress-height);
   }
 
   /* Extra padding when showing time text */
   ha-card.has-progress.show-time {
-    padding-bottom: calc(var(--pmc-progress-height, 4px) + 20px);
+    padding-bottom: calc(var(--pmc-progress-height) + 20px);
   }
 
   /* Shrink card when reserve space is off - let content determine height */
@@ -388,7 +393,7 @@ export const cardStyles = css`
     margin-top: 16px;
     padding: 10px 20px;
     border-radius: 24px;
-    background: var(--secondary-background-color, rgba(128, 128, 128, 0.2));
+    background: var(--pmc-secondary-background);
     cursor: pointer;
     transition: background 0.2s;
     max-width: 280px;
@@ -396,7 +401,7 @@ export const cardStyles = css`
   }
 
   :host([artwork-mode="tall"]) .station-pill:hover {
-    background: var(--primary-color, rgba(128, 128, 128, 0.3));
+    background: var(--pmc-primary-color);
     opacity: 0.9;
   }
 
@@ -421,7 +426,7 @@ export const cardStyles = css`
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--secondary-background-color, rgba(128, 128, 128, 0.1));
+    background: var(--pmc-secondary-background);
     border-radius: 8px;
   }
 

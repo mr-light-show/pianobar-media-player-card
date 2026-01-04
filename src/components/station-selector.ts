@@ -56,7 +56,7 @@ export class StationSelector extends LitElement {
 
     .menu-popup {
       position: fixed;
-      background: var(--card-background-color, #fff);
+      background: var(--pmc-card-background);
       border-radius: 12px;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
       padding: 4px;
@@ -96,16 +96,16 @@ export class StationSelector extends LitElement {
     }
 
     .station-button:hover {
-      background: var(--secondary-background-color, rgba(0, 0, 0, 0.05));
+      background: var(--pmc-secondary-background);
     }
 
     .station-button.active {
-      background: var(--primary-color, #03a9f4);
-      color: var(--text-primary-color, #fff);
+      background: var(--pmc-primary-color);
+      color: var(--pmc-text-primary);
     }
 
     .station-button.active:hover {
-      background: var(--primary-color, #03a9f4);
+      background: var(--pmc-primary-color);
     }
 
     .station-button ha-icon {
@@ -123,11 +123,11 @@ export class StationSelector extends LitElement {
     .station-button .quickmix-badge {
       --mdc-icon-size: 16px;
       flex-shrink: 0;
-      color: var(--primary-color, #03a9f4);
+      color: var(--pmc-primary-color);
     }
 
     .station-button.active .quickmix-badge {
-      color: var(--text-primary-color, #fff);
+      color: var(--pmc-text-primary);
     }
 
     .backdrop {

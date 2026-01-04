@@ -343,7 +343,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const positionUpdatedAt = entity.attributes.media_position_updated_at || '';
     const imageUrl = entity.attributes.entity_picture;
     const hasArtwork = !!imageUrl;
-    const fgColor = this._extractedColors?.foreground || 'var(--primary-text-color, #fff)';
+    const fgColor = this._extractedColors?.foreground || 'var(--pmc-primary-text-color)';
     const showTime = this._resolvedConfig?.showProgressTime ?? false;
 
     return html`
@@ -368,14 +368,14 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const unavailable = this._isUnavailable(volumeEntity);
     const entity = this._getEntity();
     const hasArtwork = !!entity?.attributes.entity_picture;
-    const fgColor = this._extractedColors?.foreground || 'var(--primary-text-color, #fff)';
+    const fgColor = this._extractedColors?.foreground || 'var(--pmc-primary-text-color)';
 
     return html`
       <pmc-volume-slider
         .volume=${volume}
         .muted=${muted}
         .disabled=${unavailable}
-        .sliderColor=${hasArtwork ? fgColor : 'var(--primary-text-color, #fff)'}
+        .sliderColor=${hasArtwork ? fgColor : 'var(--pmc-primary-text-color)'}
         style="color: ${hasArtwork ? fgColor : 'inherit'}"
         @volume-change=${this._handleVolumeChange}
         @mute-toggle=${this._handleMuteToggle}
@@ -683,8 +683,8 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const hasArtwork = !!imageUrl;
 
     // Get extracted colors or fallbacks
-    const bgColor = this._extractedColors?.background || 'var(--card-background-color, #1c1c1c)';
-    const fgColor = this._extractedColors?.foreground || 'var(--primary-text-color, #fff)';
+    const bgColor = this._extractedColors?.background || 'var(--pmc-card-background)';
+    const fgColor = this._extractedColors?.foreground || 'var(--pmc-primary-text-color)';
 
     // Card styles with extracted background color (not applied in tall artwork)
     const cardStyle = styleMap({

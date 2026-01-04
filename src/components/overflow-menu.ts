@@ -49,7 +49,7 @@ export class OverflowMenu extends LitElement {
 
     .menu-popup {
       position: fixed;
-      background: var(--card-background-color, #fff);
+      background: var(--pmc-card-background);
       border-radius: 12px;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
       padding: 4px;
@@ -85,7 +85,7 @@ export class OverflowMenu extends LitElement {
     }
 
     .menu-item:hover {
-      background: var(--secondary-background-color, rgba(0, 0, 0, 0.05));
+      background: var(--pmc-secondary-background);
     }
 
     .menu-item ha-icon {
@@ -104,9 +104,9 @@ export class OverflowMenu extends LitElement {
     .build-time {
       padding: 8px 16px;
       font-size: 11px;
-      color: var(--secondary-text-color, rgba(0, 0, 0, 0.5));
+      color: var(--pmc-secondary-text-color);
       text-align: center;
-      border-top: 1px solid var(--divider-color, rgba(0, 0, 0, 0.1));
+      border-top: 1px solid var(--pmc-divider);
       margin-top: 4px;
       pointer-events: none;
       user-select: text;

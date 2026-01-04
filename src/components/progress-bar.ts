@@ -43,7 +43,7 @@ export class ProgressBar extends LitElement {
     /* Progress bar wrapper */
     .progress-bar-wrapper {
       position: relative;
-      height: var(--pmc-progress-height, 4px);
+      height: var(--pmc-progress-height);
     }
 
     /* Progress bar track (background) */
