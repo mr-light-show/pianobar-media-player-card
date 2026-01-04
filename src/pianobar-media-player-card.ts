@@ -137,6 +137,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         const imageUrl = entity.attributes.entity_picture;
         if (imageUrl && imageUrl !== this._lastImageUrl) {
           this._lastImageUrl = imageUrl;
+          this._tallArtworkError = false; // Reset error state for new image
           this._updateColors(imageUrl);
         }
       }
@@ -303,9 +304,10 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const showArtist = this._resolvedConfig?.showArtist ?? true;
     const showAlbum = this._resolvedConfig?.showAlbum ?? true;
 
-    // Station info for normal mode
+    // Station info for normal mode (but not in tall artwork - tall uses pill button)
+    const isTallArtwork = this._resolvedConfig?.artwork === 'tall';
     const stationDisplay = this._resolvedConfig?.stationDisplay ?? 'hidden';
-    const showStationInfo = stationDisplay === 'normal';
+    const showStationInfo = stationDisplay === 'normal' && !isTallArtwork;
     const stations = (entity.attributes.stations as Station[]) || [];
     const currentStationName = entity.attributes.source as string || '';
     const currentStation = stations.find(s => s.name === currentStationName);
@@ -573,6 +575,90 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     `;
   }
 
+  private _renderStationPill(entity: HassEntity): TemplateResult | typeof nothing {
+    const stationDisplay = this._resolvedConfig?.stationDisplay ?? 'hidden';
+    if (stationDisplay === 'hidden') return nothing;
+
+    const stations = (entity.attributes.stations as Station[]) || [];
+    if (stations.length === 0) return nothing;
+
+    const currentStationName = entity.attributes.source as string || '';
+    const currentStation = stations.find(s => s.name === currentStationName);
+    const isQuickMix = currentStation?.isQuickMix ?? false;
+    const songStationName = (entity.attributes.song_station_name as string) || '';
+    const displayStationName = isQuickMix && songStationName ? songStationName : currentStationName;
+    const stationIcon = isQuickMix ? 'mdi:shuffle' : 'mdi:radio';
+
+    if (!displayStationName) return nothing;
+
+    return html`
+      <div class="station-pill" @click=${this._handleOpenStationPopup}>
+        <ha-icon icon="${stationIcon}"></ha-icon>
+        <span>${displayStationName}</span>
+      </div>
+    `;
+  }
+
+  @state() private _tallArtworkError = false;
+
+  private _handleTallArtworkError(): void {
+    this._tallArtworkError = true;
+  }
+
+  private _renderTallMode(entity: HassEntity): TemplateResult {
+    const unavailable = this._isUnavailable(entity);
+    // Use same image source as main render - entity_picture is the thumbnail URL
+    const imageUrl = entity.attributes.entity_picture;
+    // Only consider valid if it's a non-empty string and hasn't errored
+    const hasArtwork = !!imageUrl && typeof imageUrl === 'string' && imageUrl.length > 0 && !this._tallArtworkError;
+    const showProgress = this._resolvedConfig?.showProgressBar;
+
+    return html`
+      ${this._renderOverflowMenu(entity)}
+
+      ${hasArtwork
+        ? html`
+            <div class="artwork-container">
+              <img 
+                class="artwork-image" 
+                src="${imageUrl}" 
+                alt=""
+                @error=${this._handleTallArtworkError}
+              />
+            </div>
+          `
+        : html`
+            <div class="artwork-placeholder-tall">
+              <ha-icon icon="mdi:music"></ha-icon>
+            </div>
+          `}
+
+      <div class="card-content ${unavailable ? 'unavailable' : ''}">
+        ${this._renderMediaInfo(entity)}
+      </div>
+
+      ${showProgress ? this._renderProgressBar(entity) : nothing}
+
+      ${this._resolvedConfig?.showPlaybackControls ||
+      this._resolvedConfig?.showVolumeControl ||
+      this._resolvedConfig?.showSongActions
+        ? html`
+            <div class="controls-section">
+              ${this._renderVolumeControl()}
+              <div class="controls-row">
+                ${this._renderSongActions(entity)}
+                ${this._renderPlaybackControls(entity)}
+              </div>
+              ${this._renderStationPill(entity)}
+            </div>
+          `
+        : nothing}
+
+      ${this._renderStationPopup(entity)}
+      ${this._renderRatingsPopup(entity)}
+    `;
+  }
+
   render(): TemplateResult {
     if (!this._config || !this.hass) {
       return html``;
@@ -590,6 +676,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       `;
     }
 
+    const isTallArtwork = this._resolvedConfig?.artwork === 'tall';
     const unavailable = this._isUnavailable(entity);
     const isFullCover = this._resolvedConfig?.artwork === 'full-cover';
     const imageUrl = entity.attributes.entity_picture;
@@ -599,11 +686,11 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const bgColor = this._extractedColors?.background || 'var(--card-background-color, #1c1c1c)';
     const fgColor = this._extractedColors?.foreground || 'var(--primary-text-color, #fff)';
 
-    // Card styles with extracted background color
+    // Card styles with extracted background color (not applied in tall artwork)
     const cardStyle = styleMap({
       '--pmc-extracted-bg': bgColor,
       '--pmc-extracted-fg': fgColor,
-      backgroundColor: hasArtwork ? bgColor : undefined,
+      backgroundColor: !isTallArtwork && hasArtwork ? bgColor : undefined,
     });
 
     // Gradient style for artwork fade
@@ -617,11 +704,20 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const reserveDetailsSpace = this._resolvedConfig?.reserveDetailsSpace ?? true;
     
     const cardClasses = [
-      hasArtwork ? 'has-artwork' : '',
+      hasArtwork && !isTallArtwork ? 'has-artwork' : '',
       showProgress ? 'has-progress' : '',
       showProgress && showProgressTime ? 'show-time' : '',
       !reserveDetailsSpace ? 'no-reserve' : '',
     ].filter(Boolean).join(' ');
+
+    // Use tall artwork layout
+    if (isTallArtwork) {
+      return html`
+        <ha-card class="${cardClasses}">
+          ${this._renderTallMode(entity)}
+        </ha-card>
+      `;
+    }
 
     return html`
       <ha-card style=${cardStyle} class="${cardClasses}">

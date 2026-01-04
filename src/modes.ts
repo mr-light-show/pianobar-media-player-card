@@ -65,6 +65,21 @@ const MODE_PRESETS: Record<CardMode, ModePreset> = {
     showPowerButton: false,
     stationDisplay: 'hidden',
   },
+  tall: {
+    artwork: 'tall', // Vertical layout with artwork at top
+    showDetails: true,
+    showTitle: true,
+    showArtist: true,
+    showAlbum: true,
+    reserveDetailsSpace: true,
+    showVolumeControl: true,
+    showSongActions: true,
+    showProgressBar: true,
+    showProgressTime: true,
+    showPlaybackControls: true,
+    showPowerButton: false,
+    stationDisplay: 'normal', // Show station pill at bottom
+  },
   custom: {
     // Custom mode uses user-provided values, these are fallback defaults
     artwork: 'default',
@@ -143,6 +158,7 @@ export function getModeName(mode: CardMode): string {
     default: 'Default',
     full: 'Full',
     minimal: 'Minimal',
+    tall: 'Tall',
     custom: 'Custom',
   };
   return names[mode];
@@ -156,6 +172,7 @@ export function getModeDescription(mode: CardMode): string {
     default: 'Standard layout with artwork on right',
     full: 'Full-cover artwork background',
     minimal: 'Compact view with minimal controls',
+    tall: 'Vertical layout with artwork on top',
     custom: 'Full control over all options',
   };
   return descriptions[mode];
@@ -173,7 +190,7 @@ export function getModePreset(mode: CardMode): ModePreset {
  * Returns the matching preset mode, or 'custom' if no preset matches.
  */
 export function detectMatchingPreset(config: Partial<PianobarCardConfig>): CardMode {
-  const presetModes: CardMode[] = ['default', 'full', 'minimal'];
+  const presetModes: CardMode[] = ['default', 'full', 'minimal', 'tall'];
 
   for (const mode of presetModes) {
     const preset = MODE_PRESETS[mode];

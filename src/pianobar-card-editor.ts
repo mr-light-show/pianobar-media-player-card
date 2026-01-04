@@ -42,6 +42,7 @@ const MODE_SCHEMA = [
           { value: 'default', label: 'Default - Standard layout with artwork on right' },
           { value: 'full', label: 'Full - Full-cover artwork background' },
           { value: 'minimal', label: 'Minimal - Compact view with minimal controls' },
+          { value: 'tall', label: 'Tall - Vertical layout with artwork on top' },
           { value: 'custom', label: 'Custom - Full control over all options' },
         ],
       },
@@ -69,6 +70,7 @@ const CUSTOM_APPEARANCE_SCHEMA = [
         options: [
           { value: 'default', label: 'Compact (right side)' },
           { value: 'full-cover', label: 'Full Cover (background)' },
+          { value: 'tall', label: 'Tall (artwork on top)' },
         ],
       },
     },

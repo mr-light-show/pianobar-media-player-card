@@ -71,8 +71,8 @@ export interface Station {
 export type StationDisplayMode = 'hidden' | 'compact' | 'normal';
 
 // Card configuration types
-export type CardMode = 'default' | 'full' | 'minimal' | 'custom';
-export type ArtworkMode = 'default' | 'full-cover';
+export type CardMode = 'default' | 'full' | 'minimal' | 'tall' | 'custom';
+export type ArtworkMode = 'default' | 'full-cover' | 'tall';
 
 export interface PianobarCardConfig {
   type: string;

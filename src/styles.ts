@@ -304,6 +304,131 @@ export const cardStyles = css`
   ha-card.has-artwork .icon-button:hover {
     background-color: rgba(255, 255, 255, 0.15);
   }
+
+  /* Tall artwork style - vertical layout like webui */
+  :host([artwork-mode="tall"]) ha-card {
+    min-height: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  :host([artwork-mode="tall"]) .artwork-container {
+    position: relative;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    width: 80%;
+    max-width: none;
+    aspect-ratio: 1 / 1;
+    margin: 16px auto 0;
+  }
+
+  :host([artwork-mode="tall"]) .artwork-image {
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+  }
+
+  :host([artwork-mode="tall"]) .artwork-gradient {
+    display: none;
+  }
+
+  :host([artwork-mode="tall"]) .card-content {
+    padding: 16px;
+    padding-right: 16px;
+    min-height: auto;
+    text-align: center;
+  }
+
+  :host([artwork-mode="tall"]) .media-info {
+    align-items: center;
+  }
+
+  :host([artwork-mode="tall"]) .title,
+  :host([artwork-mode="tall"]) .artist,
+  :host([artwork-mode="tall"]) .album {
+    text-align: center;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  :host([artwork-mode="tall"]) .station-info {
+    justify-content: center;
+  }
+
+  :host([artwork-mode="tall"]) .controls-section {
+    align-items: center;
+    padding: 8px 16px 16px;
+  }
+
+  :host([artwork-mode="tall"]) .controls-row {
+    justify-content: center;
+  }
+
+  :host([artwork-mode="tall"]) .controls-spacer {
+    display: none;
+  }
+
+  :host([artwork-mode="tall"]) pmc-volume-slider {
+    width: 100%;
+    max-width: 280px;
+  }
+
+  :host([artwork-mode="tall"]) pmc-progress-bar {
+    max-width: 100%;
+  }
+
+  /* Station pill button for tall artwork */
+  :host([artwork-mode="tall"]) .station-pill {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+    padding: 10px 20px;
+    border-radius: 24px;
+    background: var(--secondary-background-color, rgba(128, 128, 128, 0.2));
+    cursor: pointer;
+    transition: background 0.2s;
+    max-width: 280px;
+    width: fit-content;
+  }
+
+  :host([artwork-mode="tall"]) .station-pill:hover {
+    background: var(--primary-color, rgba(128, 128, 128, 0.3));
+    opacity: 0.9;
+  }
+
+  :host([artwork-mode="tall"]) .station-pill ha-icon {
+    --mdc-icon-size: 20px;
+  }
+
+  :host([artwork-mode="tall"]) .station-pill span {
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 200px;
+  }
+
+  /* Artwork placeholder for tall artwork */
+  :host([artwork-mode="tall"]) .artwork-placeholder-tall {
+    width: 80%;
+    max-width: none;
+    aspect-ratio: 1 / 1;
+    margin: 16px auto 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--secondary-background-color, rgba(128, 128, 128, 0.1));
+    border-radius: 8px;
+  }
+
+  :host([artwork-mode="tall"]) .artwork-placeholder-tall ha-icon {
+    --mdc-icon-size: 80px;
+    opacity: 0.4;
+  }
 `;
 
 export const editorStyles = css`
