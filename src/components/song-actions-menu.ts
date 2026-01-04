@@ -1,4 +1,4 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 
 @customElement('pmc-song-actions-menu')
@@ -8,11 +8,16 @@ export class SongActionsMenu extends LitElement {
   @property({ type: Boolean }) showLove = true;
   @property({ type: Boolean }) showBan = true;
   @property({ type: Boolean }) showTired = true;
+  @property({ type: Boolean }) popupOnly = false; // If true, only render popup (no button)
+  @property({ type: Boolean }) externalOpen = false; // External control for popup
+  @property({ type: Object }) anchorPosition?: { left: number; top: number; bottom: number; right: number };
 
   @state() private _menuOpen = false;
   @state() private _menuTop = 0;
   @state() private _menuLeft = 0;
   @state() private _showAbove = true;
+  
+  private _ignoreNextClickOutside = false;
 
   static styles = css`
     :host {
@@ -59,7 +64,7 @@ export class SongActionsMenu extends LitElement {
       display: flex;
       flex-direction: column;
       gap: 2px;
-      z-index: 1000;
+      z-index: 99999;
       min-width: 160px;
       opacity: 0;
       visibility: hidden;
@@ -122,7 +127,7 @@ export class SongActionsMenu extends LitElement {
       left: 0;
       right: 0;
       bottom: 0;
-      z-index: 99;
+      z-index: 99998;
     }
   `;
 
@@ -138,8 +143,49 @@ export class SongActionsMenu extends LitElement {
   }
 
   private _handleClickOutside(event: MouseEvent) {
+    // Ignore the click that triggered the popup opening
+    if (this._ignoreNextClickOutside) {
+      this._ignoreNextClickOutside = false;
+      return;
+    }
     if (this._menuOpen && !event.composedPath().includes(this)) {
       this._menuOpen = false;
+      // Notify parent that popup was closed
+      this.dispatchEvent(new CustomEvent('popup-closed', { bubbles: true, composed: true }));
+    }
+  }
+
+  firstUpdated() {
+    // Handle case where externalOpen is true on first render
+    if (this.externalOpen && !this._menuOpen) {
+      this._openPopupExternal();
+    }
+  }
+
+  updated(changedProperties: PropertyValues) {
+    // Open popup when externalOpen becomes true
+    if (changedProperties.has('externalOpen') && this.externalOpen && !this._menuOpen) {
+      this._openPopupExternal();
+    }
+    // Update position if anchorPosition changes while menu is open
+    if (changedProperties.has('anchorPosition') && this._menuOpen && this.anchorPosition) {
+      this._updateMenuPosition();
+    }
+  }
+
+  private _openPopupExternal() {
+    // When opened externally, use a small delay to ensure the triggering click
+    // event has finished propagating before we open the popup
+    this._ignoreNextClickOutside = true;
+    requestAnimationFrame(() => {
+      this._openPopup();
+    });
+  }
+
+  private _openPopup() {
+    if (!this.disabled) {
+      this._updateMenuPosition();
+      this._menuOpen = true;
     }
   }
 
@@ -154,10 +200,24 @@ export class SongActionsMenu extends LitElement {
   }
 
   private _updateMenuPosition() {
-    const rect = this.getBoundingClientRect();
+    // Use anchor position if provided (for external open), otherwise use component rect
+    const rect = this.anchorPosition ?? this.getBoundingClientRect();
     const menuHeight = 100; // Approximate menu height (3 buttons with reduced padding)
+    const menuWidth = 160;
     const padding = 8; // Minimum padding from screen edge
     const gap = 8; // Gap between button and menu
+    
+    // Calculate rect dimensions (anchorPosition doesn't have width/height)
+    const rectWidth = 'width' in rect ? rect.width : (rect.right - rect.left);
+    const rectHeight = 'height' in rect ? rect.height : (rect.bottom - rect.top);
+    
+    // If no valid anchor, center in viewport
+    if (rectWidth === 0 && rectHeight === 0 && !this.anchorPosition) {
+      this._menuLeft = window.innerWidth / 2;
+      this._menuTop = Math.max(padding, (window.innerHeight - menuHeight) / 2);
+      this._showAbove = false;
+      return;
+    }
     
     const spaceAbove = rect.top;
     const spaceBelow = window.innerHeight - rect.bottom;
@@ -166,9 +226,9 @@ export class SongActionsMenu extends LitElement {
     this._showAbove = spaceAbove >= menuHeight + gap;
     
     // Center horizontally on button, but clamp to screen edges
-    this._menuLeft = Math.max(padding + 80, Math.min(
-      rect.left + rect.width / 2,
-      window.innerWidth - padding - 80
+    this._menuLeft = Math.max(padding + menuWidth / 2, Math.min(
+      rect.left + rectWidth / 2,
+      window.innerWidth - padding - menuWidth / 2
     ));
     
     if (this._showAbove) {
@@ -214,14 +274,18 @@ export class SongActionsMenu extends LitElement {
       ${this._menuOpen
         ? html`<div class="backdrop" @click=${this._closeMenu}></div>`
         : ''}
-      <button
-        class="trigger-button ${isLoved ? 'loved' : ''}"
-        @click=${this._toggleMenu}
-        ?disabled=${this.disabled}
-        title="${isLoved ? 'Loved' : 'Song actions'}"
-      >
-        <ha-icon icon="${isLoved ? 'mdi:thumb-up' : 'mdi:thumbs-up-down-outline'}"></ha-icon>
-      </button>
+      ${!this.popupOnly
+        ? html`
+            <button
+              class="trigger-button ${isLoved ? 'loved' : ''}"
+              @click=${this._toggleMenu}
+              ?disabled=${this.disabled}
+              title="${isLoved ? 'Loved' : 'Song actions'}"
+            >
+              <ha-icon icon="${isLoved ? 'mdi:thumb-up' : 'mdi:thumbs-up-down-outline'}"></ha-icon>
+            </button>
+          `
+        : ''}
       <div 
         class="menu-popup ${this._menuOpen ? 'open' : ''}"
         style="left: ${this._menuLeft}px; top: ${this._menuTop}px;"

@@ -125,7 +125,7 @@ export const cardStyles = css`
     padding-right: 16px;
     min-height: 120px;
     justify-content: flex-start;
-    color: white;
+    /* Color is set via inline style using extracted fgColor */
   }
 
   :host([artwork-mode="full-cover"]) .fullcover-background {
@@ -133,18 +133,15 @@ export const cardStyles = css`
     height: 100%;
   }
 
-  :host([artwork-mode="full-cover"]) .media-info {
-    --pmc-primary-text-color: white;
-    --pmc-secondary-text-color: rgba(255, 255, 255, 0.7);
-  }
-
+  /* Title, artist, album inherit color from card-content's inline style */
   :host([artwork-mode="full-cover"]) .title {
-    color: white;
+    color: inherit;
   }
 
   :host([artwork-mode="full-cover"]) .artist,
   :host([artwork-mode="full-cover"]) .album {
-    color: rgba(255, 255, 255, 0.7);
+    color: inherit;
+    opacity: 0.8;
   }
 
   /* Minimal mode */
@@ -194,6 +191,45 @@ export const cardStyles = css`
     text-overflow: ellipsis;
   }
 
+  .station-info {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.85rem;
+    opacity: 0.8;
+    margin: 4px 0 0 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .station-info ha-icon {
+    --mdc-icon-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .station-info span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .station-info.clickable {
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .station-info.clickable:hover {
+    opacity: 1;
+  }
+
+  /* Overflow menu positioning */
+  .overflow-menu {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 3;
+  }
+
   /* Controls section */
   .controls-section {
     position: relative;
@@ -206,7 +242,7 @@ export const cardStyles = css`
 
   :host([artwork-mode="full-cover"]) .controls-section {
     padding: 8px 16px 16px;
-    color: white;
+    /* Color is set via inline style using extracted fgColor */
     margin-top: auto;
   }
 

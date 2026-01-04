@@ -19,10 +19,14 @@ import './components/progress-bar';
 import './components/volume-slider';
 import './components/song-actions-menu';
 import './components/station-selector';
+import './components/overflow-menu';
 import './pianobar-card-editor';
 
 // Card registration info
 const CARD_VERSION = '1.0.0';
+
+// Build timestamp injected by rollup at build time
+declare const __BUILD_TIMESTAMP__: string;
 
 console.info(
   `%c PIANOBAR-MEDIA-PLAYER-CARD %c ${CARD_VERSION} `,
@@ -48,6 +52,9 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   @state() private _extractedColors?: ExtractedColors;
   @state() private _lastImageUrl?: string;
   @state() private _cardHeight = 0;
+  @state() private _stationPopupOpen = false;
+  @state() private _ratingsPopupOpen = false;
+  @state() private _popupAnchorPosition?: { left: number; top: number; bottom: number; right: number };
 
   private _resizeObserver?: ResizeObserver;
 
@@ -179,6 +186,14 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     return this._getSupportedActions().includes('tired_of_song');
   }
 
+  private _supportsAnyRating(entity: HassEntity): boolean {
+    const supportedActions = entity.attributes.supported_actions as string[] | undefined;
+    if (!supportedActions || !Array.isArray(supportedActions)) return false;
+    return supportedActions.includes('love_song') ||
+           supportedActions.includes('ban_song') ||
+           supportedActions.includes('tired_of_song');
+  }
+
   // Service calls
   private async _handlePlayPause(): Promise<void> {
     const entity = this._getEntity();
@@ -288,14 +303,32 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const showArtist = this._resolvedConfig?.showArtist ?? true;
     const showAlbum = this._resolvedConfig?.showAlbum ?? true;
 
+    // Station info for normal mode
+    const stationDisplay = this._resolvedConfig?.stationDisplay ?? 'hidden';
+    const showStationInfo = stationDisplay === 'normal';
+    const stations = (entity.attributes.stations as Station[]) || [];
+    const currentStationName = entity.attributes.source as string || '';
+    const currentStation = stations.find(s => s.name === currentStationName);
+    const isQuickMix = currentStation?.isQuickMix ?? false;
+    const songStationName = (entity.attributes.song_station_name as string) || '';
+    // Show song's station for QuickMix, otherwise show current station
+    const displayStationName = isQuickMix && songStationName ? songStationName : currentStationName;
+    const stationIcon = isQuickMix ? 'mdi:shuffle' : 'mdi:radio';
+
     // If all detail items are hidden, return nothing
-    if (!showTitle && !showArtist && !showAlbum) return nothing;
+    if (!showTitle && !showArtist && !showAlbum && !showStationInfo) return nothing;
 
     return html`
       <div class="media-info">
         ${showTitle ? html`<p class="title">${title}</p>` : nothing}
         ${showArtist && artist ? html`<p class="artist">${artist}</p>` : nothing}
         ${showAlbum && album ? html`<p class="album">${album}</p>` : nothing}
+        ${showStationInfo && displayStationName ? html`
+          <p class="station-info clickable" @click=${this._handleOpenStationPopup}>
+            <ha-icon icon="${stationIcon}"></ha-icon>
+            <span>${displayStationName}</span>
+          </p>
+        ` : nothing}
       </div>
     `;
   }
@@ -398,7 +431,8 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
   private _renderStationSelector(entity: HassEntity): TemplateResult | typeof nothing {
     const stationDisplay = this._resolvedConfig?.stationDisplay ?? 'hidden';
-    if (stationDisplay === 'hidden') return nothing;
+    // Only render in controls row for compact mode
+    if (stationDisplay !== 'compact') return nothing;
 
     // Get stations from entity attributes
     const stations = (entity.attributes.stations as Station[]) || [];
@@ -410,9 +444,8 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const currentStation = stations.find(s => s.name === currentStationName);
     const currentStationId = currentStation?.id || '';
 
-    // For QuickMix, we might want to show the song's station name
-    // This would need to be exposed by the integration if desired
-    const songStationName = '';
+    // Get song's station name for QuickMix display
+    const songStationName = (entity.attributes.song_station_name as string) || '';
 
     const unavailable = this._isUnavailable(entity);
 
@@ -422,10 +455,121 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         .currentStationId=${currentStationId}
         .currentStationName=${currentStationName}
         .songStationName=${songStationName}
-        .mode=${stationDisplay === 'compact' ? 'compact' : 'normal'}
         .disabled=${unavailable}
         @station-change=${this._handleStationChange}
       ></pmc-station-selector>
+    `;
+  }
+
+  private _renderOverflowMenu(entity: HassEntity): TemplateResult {
+    const stations = (entity.attributes.stations as Station[]) || [];
+    const hasStations = stations.length > 0;
+    const hasRatings = this._supportsAnyRating(entity);
+
+    return html`
+      <pmc-overflow-menu
+        class="overflow-menu"
+        .entityId=${entity.entity_id}
+        .showStationOption=${hasStations}
+        .showRatingsOption=${hasRatings}
+        .disabled=${this._isUnavailable(entity)}
+        .buildTime=${__BUILD_TIMESTAMP__}
+        @more-info=${this._handleMoreInfo}
+        @select-station=${this._handleOpenStationPopup}
+        @select-ratings=${this._handleOpenRatingsPopup}
+      ></pmc-overflow-menu>
+    `;
+  }
+
+  private _handleMoreInfo(e: CustomEvent): void {
+    // Dispatch hass-more-info from the main card (like mini-media-player does)
+    const event = new Event('hass-more-info', { composed: true });
+    (event as any).detail = { entityId: e.detail?.entityId };
+    this.dispatchEvent(event);
+  }
+
+  private _handleOpenStationPopup(e: CustomEvent): void {
+    this._popupAnchorPosition = e.detail?.anchorPosition;
+    this._stationPopupOpen = true;
+  }
+
+  private _handleStationPopupClosed(): void {
+    this._stationPopupOpen = false;
+    this._popupAnchorPosition = undefined;
+  }
+
+  private _handleOpenRatingsPopup(e: CustomEvent): void {
+    this._popupAnchorPosition = e.detail?.anchorPosition;
+    this._ratingsPopupOpen = true;
+  }
+
+  private _handleRatingsPopupClosed(): void {
+    this._ratingsPopupOpen = false;
+    this._popupAnchorPosition = undefined;
+  }
+
+  private _renderStationPopup(entity: HassEntity): TemplateResult | typeof nothing {
+    const stationDisplay = this._resolvedConfig?.stationDisplay ?? 'hidden';
+    // Render popup-only selector for normal mode OR when explicitly opened (e.g., from overflow menu)
+    // In normal mode, always render so clicking station-info can open it
+    // In other modes, only render when _stationPopupOpen is true
+    const shouldRender = stationDisplay === 'normal' || this._stationPopupOpen;
+    if (!shouldRender) return nothing;
+
+    const stations = (entity.attributes.stations as Station[]) || [];
+    if (stations.length === 0) return nothing;
+
+    const currentStationName = entity.attributes.source as string || '';
+    const currentStation = stations.find(s => s.name === currentStationName);
+    const currentStationId = currentStation?.id || '';
+    const songStationName = (entity.attributes.song_station_name as string) || '';
+    const unavailable = this._isUnavailable(entity);
+
+    return html`
+      <pmc-station-selector
+        .stations=${stations}
+        .currentStationId=${currentStationId}
+        .currentStationName=${currentStationName}
+        .songStationName=${songStationName}
+        .disabled=${unavailable}
+        .popupOnly=${true}
+        .externalOpen=${this._stationPopupOpen}
+        .anchorPosition=${this._popupAnchorPosition}
+        @station-change=${this._handleStationChange}
+        @popup-closed=${this._handleStationPopupClosed}
+      ></pmc-station-selector>
+    `;
+  }
+
+  private _renderRatingsPopup(entity: HassEntity): TemplateResult | typeof nothing {
+    // Only render when explicitly opened (from overflow menu)
+    if (!this._ratingsPopupOpen) return nothing;
+
+    const supportsLove = this._supportsLove();
+    const supportsBan = this._supportsBan();
+    const supportsTired = this._supportsTired();
+
+    // Don't render if no actions are supported
+    if (!supportsLove && !supportsBan && !supportsTired) return nothing;
+
+    const rating = (entity.attributes.rating as number) || 0;
+    const unavailable = this._isUnavailable(entity);
+
+    return html`
+      <pmc-song-actions-menu
+        .rating=${rating}
+        .disabled=${unavailable}
+        .showLove=${supportsLove}
+        .showBan=${supportsBan}
+        .showTired=${supportsTired}
+        .popupOnly=${true}
+        .externalOpen=${this._ratingsPopupOpen}
+        .anchorPosition=${this._popupAnchorPosition}
+        @love-song=${this._handleLoveSong}
+        @ban-song=${this._handleBanSong}
+        @tired-song=${this._handleTiredSong}
+        @popup-closed=${this._handleRatingsPopupClosed}
+      ></pmc-song-actions-menu>
     `;
   }
 
@@ -499,12 +643,13 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
         <div class="card-content ${unavailable ? 'unavailable' : ''}" style="color: ${hasArtwork ? fgColor : 'inherit'}">
           ${this._renderMediaInfo(entity)}
+          ${this._renderOverflowMenu(entity)}
         </div>
 
         ${this._resolvedConfig?.showPlaybackControls ||
         this._resolvedConfig?.showVolumeControl ||
         this._resolvedConfig?.showSongActions ||
-        (this._resolvedConfig?.stationDisplay && this._resolvedConfig?.stationDisplay !== 'hidden')
+        this._resolvedConfig?.stationDisplay === 'compact'
           ? html`
               <div class="controls-section" style="color: ${hasArtwork ? fgColor : 'inherit'}">
                 <div class="controls-row">
@@ -519,6 +664,9 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
           : nothing}
 
         ${showProgress ? this._renderProgressBar(entity) : nothing}
+
+        ${this._renderStationPopup(entity)}
+        ${this._renderRatingsPopup(entity)}
       </ha-card>
     `;
   }

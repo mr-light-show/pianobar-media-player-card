@@ -65,8 +65,9 @@ const CUSTOM_APPEARANCE_SCHEMA = [
     name: 'artwork',
     selector: {
       select: {
+        mode: 'dropdown',
         options: [
-          { value: 'default', label: 'Thumbnail (right side)' },
+          { value: 'default', label: 'Compact (right side)' },
           { value: 'full-cover', label: 'Full Cover (background)' },
         ],
       },
@@ -330,6 +331,9 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
       artwork: this._config?.artwork ?? preset.artwork,
     };
 
+    const stationDisplay = this._config?.stationDisplay ?? preset.stationDisplay;
+    const supportsStations = this._supportsStations();
+
     return html`
       <ha-form
         .hass=${this.hass}
@@ -338,6 +342,19 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
         .computeLabel=${this._computeLabel}
         @value-changed=${this._handleAppearanceChange}
       ></ha-form>
+
+      <div class="section-title">Station Selector</div>
+      ${supportsStations
+        ? html`
+            <ha-form
+              .hass=${this.hass}
+              .data=${{ stationDisplay }}
+              .schema=${STATION_DISPLAY_SCHEMA}
+              .computeLabel=${this._computeLabel}
+              @value-changed=${this._handleAppearanceChange}
+            ></ha-form>
+          `
+        : html`<p class="helper-text">Station selector requires a Pianobar media player entity</p>`}
     `;
   }
 
@@ -397,11 +414,9 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
     const showArtist = this._config?.showArtist ?? preset.showArtist;
     const showAlbum = this._config?.showAlbum ?? preset.showAlbum;
     const reserveDetailsSpace = this._config?.reserveDetailsSpace ?? preset.reserveDetailsSpace;
-    const stationDisplay = this._config?.stationDisplay ?? preset.stationDisplay;
 
     // Check if rating actions are supported
     const supportsRating = this._supportsAnyRating();
-    const supportsStations = this._supportsStations();
 
     return html`
       ${this._renderCheckbox('showPlaybackControls', 'Show playback controls', showPlaybackControls)}
@@ -418,19 +433,6 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
       ${this._renderCheckbox('showArtist', 'Show artist', showArtist, true, !showDetails)}
       ${this._renderCheckbox('showAlbum', 'Show album', showAlbum, true, !showDetails)}
       ${this._renderCheckbox('reserveDetailsSpace', 'Reserve space on card', reserveDetailsSpace, true, !showDetails)}
-
-      <div class="section-title">Station Selector</div>
-      ${supportsStations
-        ? html`
-            <ha-form
-              .hass=${this.hass}
-              .data=${{ stationDisplay }}
-              .schema=${STATION_DISPLAY_SCHEMA}
-              .computeLabel=${this._computeLabel}
-              @value-changed=${this._handleControlsChange}
-            ></ha-form>
-          `
-        : html`<p class="helper-text">Station selector requires a Pianobar media player entity</p>`}
     `;
   }
 
