@@ -100,6 +100,23 @@ export interface StationInfo {
   feedback: Feedback[];
 }
 
+// Search result types
+export interface SearchResult {
+  name?: string;
+  title?: string;
+  artist?: string;
+  musicId: string;
+}
+
+export interface SearchCategory {
+  name: string;
+  results: SearchResult[];
+}
+
+export interface SearchResults {
+  categories: SearchCategory[];
+}
+
 export type StationDisplayMode = 'hidden' | 'compact' | 'normal';
 
 // Card configuration types

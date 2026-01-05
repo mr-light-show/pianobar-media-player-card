@@ -12,6 +12,7 @@ import {
   LovelaceCard,
   Station,
   StationInfo,
+  SearchResults,
 } from './types';
 
 // Import components
@@ -27,6 +28,7 @@ import './components/quickmix-popup';
 import './components/rename-dialog';
 import './components/delete-dialog';
 import './components/station-info-popup';
+import './components/add-music-popup';
 import './pianobar-card-editor';
 
 // Card registration info
@@ -73,6 +75,9 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   @state() private _openStationInfoPopup = false;
   @state() private _stationInfo: StationInfo | null = null;
   @state() private _stationInfoLoading = false;
+  @state() private _openAddMusicPopup = false;
+  @state() private _searchResults: SearchResults = { categories: [] };
+  @state() private _searchLoading = false;
 
   private _resizeObserver?: ResizeObserver;
 
@@ -514,6 +519,8 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const showQuickMix = isOn && hasStations;
     // Show Station Info option if player is on and a station is selected
     const showStationInfo = isOn && hasStations && currentStation;
+    // Show Add Music option if player is on and a station is selected
+    const showAddMusic = isOn && hasStations && currentStation;
     // Show Rename option if player is on and we have renameable stations
     const showRename = isOn && hasStations;
     // Show Delete option if player is on and we have deleteable stations
@@ -530,6 +537,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         .showStationModeOption=${showStationMode}
         .showQuickMixOption=${showQuickMix}
         .showStationInfoOption=${showStationInfo}
+        .showAddMusicOption=${showAddMusic}
         .showRenameOption=${showRename}
         .showDeleteOption=${showDelete}
         .isOn=${isOn}
@@ -546,6 +554,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         @rename-station=${this._handleRenameStation}
         @delete-station=${this._handleDeleteStation}
         @station-info=${this._handleStationInfo}
+        @add-music=${this._handleAddMusic}
       ></pmc-overflow-menu>
     `;
   }
@@ -1034,6 +1043,98 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     }
   }
 
+  // Add Music handlers
+  private _handleAddMusic(e: CustomEvent): void {
+    this._popupAnchorPosition = e.detail?.anchorPosition;
+    this._openAddMusicPopup = true;
+    this._searchResults = { categories: [] };
+    this._searchLoading = false;
+  }
+
+  private _handleAddMusicPopupClosed(): void {
+    this._openAddMusicPopup = false;
+    this._searchResults = { categories: [] };
+    this._searchLoading = false;
+    this._popupAnchorPosition = undefined;
+  }
+
+  private async _handleMusicSearch(e: CustomEvent): Promise<void> {
+    const entity = this._getEntity();
+    if (!entity || !this.hass) return;
+
+    const { query } = e.detail;
+    this._searchLoading = true;
+
+    try {
+      const response = await this.hass.callService(
+        'pianobar',
+        'search',
+        { query },
+        { entity_id: entity.entity_id },
+        true // Return response
+      ) as { categories?: any[] } | undefined;
+
+      this._searchResults = {
+        categories: response?.categories || []
+      };
+    } catch (err) {
+      console.error('Error searching:', err);
+      this._searchResults = { categories: [] };
+      const errorEvent = new CustomEvent('hass-notification', {
+        detail: {
+          message: 'Error searching for music',
+          duration: 3000,
+        },
+        bubbles: true,
+        composed: true,
+      });
+      this.dispatchEvent(errorEvent);
+    } finally {
+      this._searchLoading = false;
+    }
+  }
+
+  private async _handleAddMusicSubmit(e: CustomEvent): Promise<void> {
+    const entity = this._getEntity();
+    if (!entity || !this.hass) return;
+
+    const { musicId, stationId } = e.detail;
+    
+    try {
+      await this.hass.callService(
+        'pianobar',
+        'add_seed',
+        { music_id: musicId, station_id: stationId },
+        { entity_id: entity.entity_id }
+      );
+      
+      // Show success toast
+      const event = new CustomEvent('hass-notification', {
+        detail: {
+          message: 'Music added to station',
+          duration: 2000,
+        },
+        bubbles: true,
+        composed: true,
+      });
+      this.dispatchEvent(event);
+      
+      // Close the popup
+      this._handleAddMusicPopupClosed();
+    } catch (err) {
+      console.error('Error adding music:', err);
+      const errorEvent = new CustomEvent('hass-notification', {
+        detail: {
+          message: 'Error adding music to station',
+          duration: 3000,
+        },
+        bubbles: true,
+        composed: true,
+      });
+      this.dispatchEvent(errorEvent);
+    }
+  }
+
   private _renderStationPopup(entity: HassEntity): TemplateResult | typeof nothing {
     const stationDisplay = this._resolvedConfig?.stationDisplay ?? 'hidden';
     // Render popup-only selector for normal mode OR when explicitly opened (e.g., from overflow menu)
@@ -1215,6 +1316,27 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     `;
   }
 
+  private _renderAddMusicPopup(entity: HassEntity): TemplateResult | typeof nothing {
+    if (!this._openAddMusicPopup) return nothing;
+
+    const stations = (entity.attributes.stations as Station[]) || [];
+    const unavailable = this._isUnavailable(entity);
+
+    return html`
+      <pmc-add-music-popup
+        .stations=${stations}
+        .searchResults=${this._searchResults}
+        .searchLoading=${this._searchLoading}
+        .disabled=${unavailable}
+        .externalOpen=${this._openAddMusicPopup}
+        .anchorPosition=${this._popupAnchorPosition}
+        @search=${this._handleMusicSearch}
+        @add-music=${this._handleAddMusicSubmit}
+        @popup-closed=${this._handleAddMusicPopupClosed}
+      ></pmc-add-music-popup>
+    `;
+  }
+
   private _renderStationPill(entity: HassEntity): TemplateResult | typeof nothing {
     const stationDisplay = this._resolvedConfig?.stationDisplay ?? 'hidden';
     if (stationDisplay === 'hidden') return nothing;
@@ -1302,6 +1424,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       ${this._renderRenameDialog(entity)}
       ${this._renderDeleteDialog(entity)}
       ${this._renderStationInfoPopup(entity)}
+      ${this._renderAddMusicPopup(entity)}
     `;
   }
 
@@ -1423,6 +1546,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         ${this._renderRenameDialog(entity)}
         ${this._renderDeleteDialog(entity)}
         ${this._renderStationInfoPopup(entity)}
+        ${this._renderAddMusicPopup(entity)}
       </ha-card>
     `;
   }

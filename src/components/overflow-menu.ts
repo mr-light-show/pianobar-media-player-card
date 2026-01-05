@@ -11,6 +11,7 @@ export class OverflowMenu extends LitElement {
   @property({ type: Boolean }) showStationModeOption = false;
   @property({ type: Boolean }) showQuickMixOption = false;
   @property({ type: Boolean }) showStationInfoOption = false;
+  @property({ type: Boolean }) showAddMusicOption = false;
   @property({ type: Boolean }) showRenameOption = false;
   @property({ type: Boolean }) showDeleteOption = false;
   @property({ type: Boolean }) isOn = true;
@@ -187,6 +188,7 @@ export class OverflowMenu extends LitElement {
     if (this.showStationModeOption) itemCount++;
     if (this.showQuickMixOption) itemCount++;
     if (this.showStationInfoOption) itemCount++;
+    if (this.showAddMusicOption) itemCount++;
     if (this.showRenameOption) itemCount++;
     if (this.showDeleteOption) itemCount++;
     const menuHeight = itemCount * 44 + (this.buildTime ? 40 : 0); // Approximate height per item + build time
@@ -397,8 +399,18 @@ export class OverflowMenu extends LitElement {
     }
     
     // Divider before station management actions
-    if (this.showQuickMixOption || this.showRenameOption || this.showDeleteOption) {
+    if (this.showQuickMixOption || this.showAddMusicOption || this.showRenameOption || this.showDeleteOption) {
       menuItems += `<div style="height: 1px; background: var(--divider-color, rgba(0, 0, 0, 0.1)); margin: 4px 0;"></div>`;
+    }
+    
+    // Station management actions - Add Music
+    if (this.showAddMusicOption) {
+      menuItems += `
+        <button class="menu-item" data-action="add-music">
+          <ha-icon icon="mdi:playlist-plus"></ha-icon>
+          <span>Add Music to Station</span>
+        </button>
+      `;
     }
     
     // Station management actions
@@ -493,6 +505,9 @@ export class OverflowMenu extends LitElement {
         } else if (action === 'quickmix') {
           const rect = (item as Element).getBoundingClientRect();
           this.dispatchEvent(new CustomEvent('quickmix', { bubbles: true, composed: true, detail: { anchorPosition: { left: rect.left, top: rect.top, bottom: rect.bottom, right: rect.right } } }));
+        } else if (action === 'add-music') {
+          const rect = (item as Element).getBoundingClientRect();
+          this.dispatchEvent(new CustomEvent('add-music', { bubbles: true, composed: true, detail: { anchorPosition: { left: rect.left, top: rect.top, bottom: rect.bottom, right: rect.right } } }));
         } else if (action === 'rename-station') {
           const rect = (item as Element).getBoundingClientRect();
           this.dispatchEvent(new CustomEvent('rename-station', { bubbles: true, composed: true, detail: { anchorPosition: { left: rect.left, top: rect.top, bottom: rect.bottom, right: rect.right } } }));
