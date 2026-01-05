@@ -514,8 +514,8 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   private _renderOverflowMenu(entity: HassEntity): TemplateResult {
     const stations = (entity.attributes.stations as Station[]) || [];
     const hasStations = stations.length > 0;
-    const hasRatings = this._supportsAnyRating(entity);
     const hasCurrentSong = !!entity.attributes.media_title;
+    const hasRatings = this._supportsAnyRating(entity) && hasCurrentSong;
     const isOn = entity.state !== 'off' && entity.state !== 'unavailable';
     // Only show station mode if station is selected and not QuickMix
     const currentStation = stations.find(s => s.id === entity.attributes.media_content_id);
