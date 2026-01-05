@@ -205,7 +205,9 @@ export function detectMatchingPreset(config: Partial<PianobarCardConfig>): CardM
       (config.showVolumeControl ?? true) === preset.showVolumeControl &&
       (config.showSongActions ?? true) === preset.showSongActions &&
       (config.showProgressBar ?? true) === preset.showProgressBar &&
-      (config.showPowerButton ?? false) === preset.showPowerButton
+      (config.showProgressTime ?? false) === preset.showProgressTime &&
+      (config.showPowerButton ?? false) === preset.showPowerButton &&
+      (config.stationDisplay ?? 'hidden') === preset.stationDisplay
     ) {
       return mode;
     }
