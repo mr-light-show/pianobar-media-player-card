@@ -13,6 +13,10 @@ import Vibrant from 'node-vibrant/dist/vibrant';
 export interface ExtractedColors {
   background: string;
   foreground: string;
+  /** Foreground color optimized for metadata area (left side in full mode) */
+  metadataForeground?: string;
+  /** Foreground color optimized for controls area (bottom in full mode) */
+  controlsForeground?: string;
 }
 
 /**
@@ -170,6 +174,142 @@ export async function extractColors(imageUrl: string | undefined): Promise<Extra
   } catch (err) {
     console.error('Error extracting colors:', err);
     return DEFAULT_COLORS;
+  }
+}
+
+/**
+ * Region definition for sampling
+ */
+interface SampleRegion {
+  x: number; // 0-1 fraction of width
+  y: number; // 0-1 fraction of height
+  width: number; // 0-1 fraction of width
+  height: number; // 0-1 fraction of height
+}
+
+// Regions for full cover mode
+const METADATA_REGION: SampleRegion = { x: 0, y: 0, width: 0.4, height: 0.7 };
+const CONTROLS_REGION: SampleRegion = { x: 0, y: 0.7, width: 1, height: 0.3 };
+
+/**
+ * Get average color from a region of image data
+ */
+function getRegionAverageColor(
+  imageData: ImageData,
+  region: SampleRegion,
+  imgWidth: number,
+  imgHeight: number
+): number[] {
+  const startX = Math.floor(region.x * imgWidth);
+  const startY = Math.floor(region.y * imgHeight);
+  const endX = Math.floor((region.x + region.width) * imgWidth);
+  const endY = Math.floor((region.y + region.height) * imgHeight);
+
+  let r = 0, g = 0, b = 0, count = 0;
+
+  // Sample every 4th pixel for performance
+  for (let y = startY; y < endY; y += 4) {
+    for (let x = startX; x < endX; x += 4) {
+      const i = (y * imgWidth + x) * 4;
+      r += imageData.data[i];
+      g += imageData.data[i + 1];
+      b += imageData.data[i + 2];
+      count++;
+    }
+  }
+
+  if (count === 0) return [128, 128, 128];
+  return [Math.round(r / count), Math.round(g / count), Math.round(b / count)];
+}
+
+/**
+ * Convert RGB array to hex string
+ */
+function rgbToHex(rgb: number[]): string {
+  return '#' + rgb.map(c => c.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Find a contrasting color for a given background
+ * Returns white or black based on luminance, or a tinted version
+ */
+function getContrastingColor(bgRgb: number[]): string {
+  const lum = luminance(bgRgb[0], bgRgb[1], bgRgb[2]);
+  // If background is dark, use white; if light, use dark gray
+  if (lum < 0.5) {
+    return '#ffffff';
+  } else {
+    return '#1a1a1a';
+  }
+}
+
+/**
+ * Extract colors with regional sampling for full cover mode.
+ * Samples specific regions of the artwork to get better color matches
+ * for metadata (left side) and controls (bottom) areas.
+ */
+export async function extractRegionalColors(imageUrl: string | undefined): Promise<ExtractedColors> {
+  // First get the base colors using existing method
+  const baseColors = await extractColors(imageUrl);
+  
+  if (!imageUrl) {
+    return baseColors;
+  }
+
+  // Check if we already have regional colors cached
+  const cacheKey = `regional:${imageUrl}`;
+  const cached = colorCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  try {
+    // Load image into canvas to sample regions
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = imageUrl;
+    });
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      return baseColors;
+    }
+
+    // Use smaller size for performance
+    const maxSize = 100;
+    const scale = Math.min(maxSize / img.width, maxSize / img.height);
+    canvas.width = Math.floor(img.width * scale);
+    canvas.height = Math.floor(img.height * scale);
+    
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    // Sample regions
+    const metadataAvg = getRegionAverageColor(imageData, METADATA_REGION, canvas.width, canvas.height);
+    const controlsAvg = getRegionAverageColor(imageData, CONTROLS_REGION, canvas.width, canvas.height);
+
+    // Get contrasting colors for each region
+    const metadataForeground = getContrastingColor(metadataAvg);
+    const controlsForeground = getContrastingColor(controlsAvg);
+
+    const result: ExtractedColors = {
+      ...baseColors,
+      metadataForeground,
+      controlsForeground,
+    };
+
+    // Cache the result
+    colorCache.set(cacheKey, result);
+
+    return result;
+  } catch (err) {
+    console.error('Error extracting regional colors:', err);
+    return baseColors;
   }
 }
 

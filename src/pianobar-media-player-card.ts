@@ -3,7 +3,7 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { styleMap } from 'lit/directives/style-map.js';
 import { cardStyles } from './styles';
 import { resolveConfig } from './modes';
-import { extractColors, ExtractedColors } from './utils/color-extractor';
+import { extractColors, extractRegionalColors, ExtractedColors } from './utils/color-extractor';
 import {
   HomeAssistant,
   HassEntity,
@@ -145,7 +145,11 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   }
 
   private async _updateColors(imageUrl: string): Promise<void> {
-    const colors = await extractColors(imageUrl);
+    // Use regional extraction for full cover mode, standard extraction otherwise
+    const isFullCover = this._resolvedConfig?.artwork === 'full-cover';
+    const colors = isFullCover 
+      ? await extractRegionalColors(imageUrl)
+      : await extractColors(imageUrl);
     this._extractedColors = colors;
   }
 
@@ -343,8 +347,12 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const positionUpdatedAt = entity.attributes.media_position_updated_at || '';
     const imageUrl = entity.attributes.entity_picture;
     const isTallArtwork = this._resolvedConfig?.artwork === 'tall';
+    const isFullCover = this._resolvedConfig?.artwork === 'full-cover';
     const hasArtwork = !!imageUrl && !isTallArtwork; // Don't use extracted colors in tall mode
-    const fgColor = this._extractedColors?.foreground || 'var(--pmc-primary-text-color)';
+    // Use regional controls color for full-cover, otherwise standard foreground
+    const fgColor = isFullCover 
+      ? (this._extractedColors?.controlsForeground || this._extractedColors?.foreground || 'var(--pmc-primary-text-color)')
+      : (this._extractedColors?.foreground || 'var(--pmc-primary-text-color)');
     const showTime = this._resolvedConfig?.showProgressTime ?? false;
     const isPlaying = this._isPlaying(entity);
 
@@ -371,8 +379,12 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const unavailable = this._isUnavailable(volumeEntity);
     const entity = this._getEntity();
     const isTallArtwork = this._resolvedConfig?.artwork === 'tall';
+    const isFullCover = this._resolvedConfig?.artwork === 'full-cover';
     const hasArtwork = !!entity?.attributes.entity_picture && !isTallArtwork; // Don't use extracted colors in tall mode
-    const fgColor = this._extractedColors?.foreground || 'var(--pmc-primary-text-color)';
+    // Use regional controls color for full-cover, otherwise standard foreground
+    const fgColor = isFullCover 
+      ? (this._extractedColors?.controlsForeground || this._extractedColors?.foreground || 'var(--pmc-primary-text-color)')
+      : (this._extractedColors?.foreground || 'var(--pmc-primary-text-color)');
 
     return html`
       <pmc-volume-slider
@@ -696,6 +708,14 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     // Get extracted colors or fallbacks
     const bgColor = this._extractedColors?.background || 'var(--pmc-card-background)';
     const fgColor = this._extractedColors?.foreground || 'var(--pmc-primary-text-color)';
+    
+    // Regional colors for full-cover mode (fallback to main foreground if not available)
+    const metadataColor = isFullCover 
+      ? (this._extractedColors?.metadataForeground || fgColor)
+      : fgColor;
+    const controlsColor = isFullCover 
+      ? (this._extractedColors?.controlsForeground || fgColor)
+      : fgColor;
 
     // Card styles with extracted background color (not applied in tall artwork)
     const cardStyle = styleMap({
@@ -748,7 +768,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
             `
           : nothing}
 
-        <div class="card-content ${unavailable ? 'unavailable' : ''}" style="color: ${hasArtwork ? fgColor : 'inherit'}">
+        <div class="card-content ${unavailable ? 'unavailable' : ''}" style="color: ${hasArtwork ? metadataColor : 'inherit'}">
           ${this._renderMediaInfo(entity)}
           ${this._renderOverflowMenu(entity)}
         </div>
@@ -758,7 +778,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         this._resolvedConfig?.showSongActions ||
         this._resolvedConfig?.stationDisplay === 'compact'
           ? html`
-              <div class="controls-section" style="color: ${hasArtwork ? fgColor : 'inherit'}">
+              <div class="controls-section" style="color: ${hasArtwork ? controlsColor : 'inherit'}">
                 <div class="controls-row">
                   ${this._renderPlaybackControls(entity)}
                   <div class="controls-spacer"></div>
