@@ -10,6 +10,7 @@ export class OverflowMenu extends LitElement {
   @property({ type: Boolean }) showUpcomingOption = false;
   @property({ type: Boolean }) showStationModeOption = false;
   @property({ type: Boolean }) showQuickMixOption = false;
+  @property({ type: Boolean }) showStationInfoOption = false;
   @property({ type: Boolean }) showRenameOption = false;
   @property({ type: Boolean }) showDeleteOption = false;
   @property({ type: Boolean }) isOn = true;
@@ -185,6 +186,7 @@ export class OverflowMenu extends LitElement {
     if (this.showUpcomingOption) itemCount++;
     if (this.showStationModeOption) itemCount++;
     if (this.showQuickMixOption) itemCount++;
+    if (this.showStationInfoOption) itemCount++;
     if (this.showRenameOption) itemCount++;
     if (this.showDeleteOption) itemCount++;
     const menuHeight = itemCount * 44 + (this.buildTime ? 40 : 0); // Approximate height per item + build time
@@ -370,8 +372,17 @@ export class OverflowMenu extends LitElement {
       `;
     }
     
+    if (this.showStationInfoOption) {
+      menuItems += `
+        <button class="menu-item" data-action="station-info">
+          <ha-icon icon="mdi:information"></ha-icon>
+          <span>Manage Seeds & Feedback</span>
+        </button>
+      `;
+    }
+    
     // Divider after station actions if they exist
-    if (this.showStationModeOption || this.showQuickMixOption) {
+    if (this.showStationModeOption || this.showStationInfoOption) {
       menuItems += `<div style="height: 1px; background: var(--divider-color, rgba(0, 0, 0, 0.1)); margin: 4px 0;"></div>`;
     }
     
@@ -476,6 +487,9 @@ export class OverflowMenu extends LitElement {
         } else if (action === 'station-mode') {
           const rect = (item as Element).getBoundingClientRect();
           this.dispatchEvent(new CustomEvent('station-mode', { bubbles: true, composed: true, detail: { anchorPosition: { left: rect.left, top: rect.top, bottom: rect.bottom, right: rect.right } } }));
+        } else if (action === 'station-info') {
+          const rect = (item as Element).getBoundingClientRect();
+          this.dispatchEvent(new CustomEvent('station-info', { bubbles: true, composed: true, detail: { anchorPosition: { left: rect.left, top: rect.top, bottom: rect.bottom, right: rect.right } } }));
         } else if (action === 'quickmix') {
           const rect = (item as Element).getBoundingClientRect();
           this.dispatchEvent(new CustomEvent('quickmix', { bubbles: true, composed: true, detail: { anchorPosition: { left: rect.left, top: rect.top, bottom: rect.bottom, right: rect.right } } }));

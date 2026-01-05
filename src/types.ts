@@ -69,6 +69,37 @@ export interface Station {
   isQuickMixed?: boolean;
 }
 
+// Station info types for seeds and feedback
+export interface ArtistSeed {
+  seedId: string;
+  name: string;
+}
+
+export interface SongSeed {
+  seedId: string;
+  title: string;
+  artist: string;
+}
+
+export interface StationSeed {
+  seedId: string;
+  name: string;
+}
+
+export interface Feedback {
+  feedbackId: string;
+  title: string;
+  artist: string;
+  rating: number; // 1 = love, 0 = ban
+}
+
+export interface StationInfo {
+  artistSeeds: ArtistSeed[];
+  songSeeds: SongSeed[];
+  stationSeeds: StationSeed[];
+  feedback: Feedback[];
+}
+
 export type StationDisplayMode = 'hidden' | 'compact' | 'normal';
 
 // Card configuration types
