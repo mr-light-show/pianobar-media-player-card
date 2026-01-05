@@ -390,18 +390,8 @@ export class OverflowMenu extends LitElement {
       menuItems += `<div style="height: 1px; background: var(--divider-color, rgba(0, 0, 0, 0.1)); margin: 4px 0;"></div>`;
     }
     
-    // QuickMix management
-    if (this.showQuickMixOption) {
-      menuItems += `
-        <button class="menu-item" data-action="quickmix">
-          <ha-icon icon="mdi:playlist-music"></ha-icon>
-          <span>QuickMix Settings</span>
-        </button>
-      `;
-    }
-    
     // Divider before station management actions
-    if (this.showQuickMixOption || this.showAddMusicOption || this.showCreateStationOption || this.showRenameOption || this.showDeleteOption) {
+    if (this.showAddMusicOption || this.showCreateStationOption || this.showRenameOption || this.showDeleteOption) {
       menuItems += `<div style="height: 1px; background: var(--divider-color, rgba(0, 0, 0, 0.1)); margin: 4px 0;"></div>`;
     }
     
@@ -455,6 +445,16 @@ export class OverflowMenu extends LitElement {
         <button class="menu-item" data-action="select-station">
           <ha-icon icon="mdi:radio"></ha-icon>
           <span>Select Station</span>
+        </button>
+      `;
+    }
+    
+    // QuickMix management (right after Select Station)
+    if (this.showQuickMixOption) {
+      menuItems += `
+        <button class="menu-item" data-action="quickmix">
+          <ha-icon icon="mdi:playlist-music"></ha-icon>
+          <span>QuickMix Settings</span>
         </button>
       `;
     }

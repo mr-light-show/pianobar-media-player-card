@@ -859,6 +859,11 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       
       // Close the dialog
       this._handleRenameDialogClosed();
+      
+      // Force a re-render after a short delay to allow HA to update the entity
+      setTimeout(() => {
+        this.requestUpdate();
+      }, 500);
     } catch (err) {
       console.error('Error renaming station:', err);
       const errorEvent = new CustomEvent('hass-notification', {
@@ -1194,8 +1199,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         'pianobar',
         'create_station',
         { 
-          type: 'song',
-          track_token: trackToken
+          type: 'song'
         }
       );
       this.dispatchEvent(new CustomEvent('hass-notification', {
@@ -1225,8 +1229,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         'pianobar',
         'create_station',
         { 
-          type: 'artist',
-          track_token: trackToken
+          type: 'artist'
         }
       );
       this.dispatchEvent(new CustomEvent('hass-notification', {
