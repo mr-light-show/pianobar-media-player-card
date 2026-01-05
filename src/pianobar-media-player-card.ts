@@ -13,6 +13,7 @@ import {
   Station,
   StationInfo,
   SearchResults,
+  GenreCategory,
 } from './types';
 
 // Import components
@@ -29,6 +30,7 @@ import './components/rename-dialog';
 import './components/delete-dialog';
 import './components/station-info-popup';
 import './components/add-music-popup';
+import './components/create-station-modal';
 import './pianobar-card-editor';
 
 // Card registration info
@@ -78,6 +80,9 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   @state() private _openAddMusicPopup = false;
   @state() private _searchResults: SearchResults = { categories: [] };
   @state() private _searchLoading = false;
+  @state() private _openCreateStationModal = false;
+  @state() private _genreCategories: GenreCategory[] = [];
+  @state() private _genreLoading = false;
 
   private _resizeObserver?: ResizeObserver;
 
@@ -521,6 +526,8 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const showStationInfo = isOn && hasStations && currentStation;
     // Show Add Music option if player is on and a station is selected
     const showAddMusic = isOn && hasStations && currentStation;
+    // Show Create Station option if player is on
+    const showCreateStation = isOn;
     // Show Rename option if player is on and we have renameable stations
     const showRename = isOn && hasStations;
     // Show Delete option if player is on and we have deleteable stations
@@ -538,6 +545,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         .showQuickMixOption=${showQuickMix}
         .showStationInfoOption=${showStationInfo}
         .showAddMusicOption=${showAddMusic}
+        .showCreateStationOption=${showCreateStation}
         .showRenameOption=${showRename}
         .showDeleteOption=${showDelete}
         .isOn=${isOn}
@@ -555,6 +563,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         @delete-station=${this._handleDeleteStation}
         @station-info=${this._handleStationInfo}
         @add-music=${this._handleAddMusic}
+        @create-station=${this._handleCreateStation}
       ></pmc-overflow-menu>
     `;
   }
@@ -1135,6 +1144,200 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     }
   }
 
+  // Create Station handlers
+  private _handleCreateStation(e: CustomEvent): void {
+    this._popupAnchorPosition = e.detail?.anchorPosition;
+    this._openCreateStationModal = true;
+    this._searchResults = { categories: [] };
+    this._genreCategories = [];
+    this._searchLoading = false;
+    this._genreLoading = false;
+  }
+
+  private _handleCreateStationModalClosed(): void {
+    this._openCreateStationModal = false;
+    this._searchResults = { categories: [] };
+    this._genreCategories = [];
+    this._searchLoading = false;
+    this._genreLoading = false;
+    this._popupAnchorPosition = undefined;
+  }
+
+  private async _handleCreateFromSong(): Promise<void> {
+    const entity = this._getEntity();
+    if (!entity || !this.hass) return;
+
+    const trackToken = entity.attributes.media_content_id as string;
+    if (!trackToken) return;
+
+    try {
+      await this.hass.callService(
+        'pianobar',
+        'create_station',
+        { type: 'song', track_token: trackToken },
+        { entity_id: entity.entity_id }
+      );
+      this.dispatchEvent(new CustomEvent('hass-notification', {
+        detail: { message: 'Station created from current song', duration: 2000 },
+        bubbles: true,
+        composed: true,
+      }));
+    } catch (err) {
+      console.error('Error creating station:', err);
+      this.dispatchEvent(new CustomEvent('hass-notification', {
+        detail: { message: 'Error creating station', duration: 3000 },
+        bubbles: true,
+        composed: true,
+      }));
+    }
+  }
+
+  private async _handleCreateFromArtist(): Promise<void> {
+    const entity = this._getEntity();
+    if (!entity || !this.hass) return;
+
+    const trackToken = entity.attributes.media_content_id as string;
+    if (!trackToken) return;
+
+    try {
+      await this.hass.callService(
+        'pianobar',
+        'create_station',
+        { type: 'artist', track_token: trackToken },
+        { entity_id: entity.entity_id }
+      );
+      this.dispatchEvent(new CustomEvent('hass-notification', {
+        detail: { message: 'Station created from current artist', duration: 2000 },
+        bubbles: true,
+        composed: true,
+      }));
+    } catch (err) {
+      console.error('Error creating station:', err);
+      this.dispatchEvent(new CustomEvent('hass-notification', {
+        detail: { message: 'Error creating station', duration: 3000 },
+        bubbles: true,
+        composed: true,
+      }));
+    }
+  }
+
+  private async _handleCreateStationSearch(e: CustomEvent): Promise<void> {
+    const entity = this._getEntity();
+    if (!entity || !this.hass) return;
+
+    const { query } = e.detail;
+    this._searchLoading = true;
+
+    try {
+      const response = await this.hass.callService(
+        'pianobar',
+        'search',
+        { query },
+        { entity_id: entity.entity_id },
+        true
+      ) as { categories?: any[] } | undefined;
+
+      this._searchResults = {
+        categories: response?.categories || []
+      };
+    } catch (err) {
+      console.error('Error searching:', err);
+      this._searchResults = { categories: [] };
+      this.dispatchEvent(new CustomEvent('hass-notification', {
+        detail: { message: 'Error searching for music', duration: 3000 },
+        bubbles: true,
+        composed: true,
+      }));
+    } finally {
+      this._searchLoading = false;
+    }
+  }
+
+  private async _handleBrowseGenres(): Promise<void> {
+    const entity = this._getEntity();
+    if (!entity || !this.hass) return;
+
+    this._genreLoading = true;
+
+    try {
+      const response = await this.hass.callService(
+        'pianobar',
+        'get_genres',
+        {},
+        { entity_id: entity.entity_id },
+        true
+      ) as { categories?: any[] } | undefined;
+
+      this._genreCategories = response?.categories || [];
+    } catch (err) {
+      console.error('Error fetching genres:', err);
+      this._genreCategories = [];
+      this.dispatchEvent(new CustomEvent('hass-notification', {
+        detail: { message: 'Error loading genres', duration: 3000 },
+        bubbles: true,
+        composed: true,
+      }));
+    } finally {
+      this._genreLoading = false;
+    }
+  }
+
+  private async _handleCreateFromMusicId(e: CustomEvent): Promise<void> {
+    const entity = this._getEntity();
+    if (!entity || !this.hass) return;
+
+    const { musicId } = e.detail;
+
+    try {
+      await this.hass.callService(
+        'pianobar',
+        'create_station_from_music_id',
+        { music_id: musicId },
+        { entity_id: entity.entity_id }
+      );
+      this.dispatchEvent(new CustomEvent('hass-notification', {
+        detail: { message: 'Station created', duration: 2000 },
+        bubbles: true,
+        composed: true,
+      }));
+    } catch (err) {
+      console.error('Error creating station:', err);
+      this.dispatchEvent(new CustomEvent('hass-notification', {
+        detail: { message: 'Error creating station', duration: 3000 },
+        bubbles: true,
+        composed: true,
+      }));
+    }
+  }
+
+  private async _handleCreateFromShared(e: CustomEvent): Promise<void> {
+    const entity = this._getEntity();
+    if (!entity || !this.hass) return;
+
+    const { stationId } = e.detail;
+
+    try {
+      await this.hass.callService(
+        'pianobar',
+        'add_shared_station',
+        { station_id: stationId },
+        { entity_id: entity.entity_id }
+      );
+      this.dispatchEvent(new CustomEvent('hass-notification', {
+        detail: { message: 'Shared station added', duration: 2000 },
+        bubbles: true,
+        composed: true,
+      }));
+    } catch (err) {
+      console.error('Error adding shared station:', err);
+      this.dispatchEvent(new CustomEvent('hass-notification', {
+        detail: { message: 'Error adding shared station', duration: 3000 },
+        bubbles: true,
+        composed: true,
+      }));
+    }
+  }
+
   private _renderStationPopup(entity: HassEntity): TemplateResult | typeof nothing {
     const stationDisplay = this._resolvedConfig?.stationDisplay ?? 'hidden';
     // Render popup-only selector for normal mode OR when explicitly opened (e.g., from overflow menu)
@@ -1337,6 +1540,37 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     `;
   }
 
+  private _renderCreateStationModal(entity: HassEntity): TemplateResult | typeof nothing {
+    if (!this._openCreateStationModal) return nothing;
+
+    const unavailable = this._isUnavailable(entity);
+    const currentSongName = entity.attributes.media_title as string || '';
+    const currentArtistName = entity.attributes.media_artist as string || '';
+    const currentTrackToken = entity.attributes.media_content_id as string || '';
+
+    return html`
+      <pmc-create-station-modal
+        .currentSongName=${currentSongName}
+        .currentArtistName=${currentArtistName}
+        .currentTrackToken=${currentTrackToken}
+        .searchResults=${this._searchResults}
+        .genreCategories=${this._genreCategories}
+        .searchLoading=${this._searchLoading}
+        .genreLoading=${this._genreLoading}
+        .disabled=${unavailable}
+        .externalOpen=${this._openCreateStationModal}
+        .anchorPosition=${this._popupAnchorPosition}
+        @create-from-song=${this._handleCreateFromSong}
+        @create-from-artist=${this._handleCreateFromArtist}
+        @search=${this._handleCreateStationSearch}
+        @browse-genres=${this._handleBrowseGenres}
+        @create-from-music-id=${this._handleCreateFromMusicId}
+        @create-from-shared=${this._handleCreateFromShared}
+        @popup-closed=${this._handleCreateStationModalClosed}
+      ></pmc-create-station-modal>
+    `;
+  }
+
   private _renderStationPill(entity: HassEntity): TemplateResult | typeof nothing {
     const stationDisplay = this._resolvedConfig?.stationDisplay ?? 'hidden';
     if (stationDisplay === 'hidden') return nothing;
@@ -1425,6 +1659,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       ${this._renderDeleteDialog(entity)}
       ${this._renderStationInfoPopup(entity)}
       ${this._renderAddMusicPopup(entity)}
+      ${this._renderCreateStationModal(entity)}
     `;
   }
 
@@ -1547,6 +1782,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         ${this._renderDeleteDialog(entity)}
         ${this._renderStationInfoPopup(entity)}
         ${this._renderAddMusicPopup(entity)}
+        ${this._renderCreateStationModal(entity)}
       </ha-card>
     `;
   }

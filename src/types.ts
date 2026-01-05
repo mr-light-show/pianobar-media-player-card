@@ -117,6 +117,17 @@ export interface SearchResults {
   categories: SearchCategory[];
 }
 
+// Genre types
+export interface Genre {
+  name: string;
+  musicId: string;
+}
+
+export interface GenreCategory {
+  name: string;
+  genres: Genre[];
+}
+
 export type StationDisplayMode = 'hidden' | 'compact' | 'normal';
 
 // Card configuration types
