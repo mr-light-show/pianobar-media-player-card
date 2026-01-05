@@ -386,9 +386,35 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
 
   private _handleCheckboxChange(key: string, ev: Event): void {
     const target = ev.target as HTMLInputElement;
-    const newConfig = { ...this._config, [key]: target.checked };
     
-    // Detect if settings match a preset
+    // Get FULLY RESOLVED config (with all preset values applied)
+    const currentMode = this._config?.mode || 'default';
+    const preset = getModePreset(currentMode);
+    const isCustomMode = currentMode === 'custom';
+    
+    // Build complete config with all current effective values
+    const resolvedConfig = {
+      ...this._config,
+      // Fill in all preset values if not in custom mode
+      artwork: isCustomMode ? (this._config?.artwork ?? preset.artwork) : preset.artwork,
+      showDetails: isCustomMode ? (this._config?.showDetails ?? preset.showDetails) : preset.showDetails,
+      showTitle: isCustomMode ? (this._config?.showTitle ?? preset.showTitle) : preset.showTitle,
+      showArtist: isCustomMode ? (this._config?.showArtist ?? preset.showArtist) : preset.showArtist,
+      showAlbum: isCustomMode ? (this._config?.showAlbum ?? preset.showAlbum) : preset.showAlbum,
+      reserveDetailsSpace: isCustomMode ? (this._config?.reserveDetailsSpace ?? preset.reserveDetailsSpace) : preset.reserveDetailsSpace,
+      showPlaybackControls: isCustomMode ? (this._config?.showPlaybackControls ?? preset.showPlaybackControls) : preset.showPlaybackControls,
+      showPowerButton: isCustomMode ? (this._config?.showPowerButton ?? preset.showPowerButton) : preset.showPowerButton,
+      showVolumeControl: isCustomMode ? (this._config?.showVolumeControl ?? preset.showVolumeControl) : preset.showVolumeControl,
+      showSongActions: isCustomMode ? (this._config?.showSongActions ?? preset.showSongActions) : preset.showSongActions,
+      showProgressBar: isCustomMode ? (this._config?.showProgressBar ?? preset.showProgressBar) : preset.showProgressBar,
+      showProgressTime: isCustomMode ? (this._config?.showProgressTime ?? preset.showProgressTime) : preset.showProgressTime,
+      stationDisplay: isCustomMode ? (this._config?.stationDisplay ?? preset.stationDisplay) : preset.stationDisplay,
+    };
+    
+    // Now apply the checkbox change to the COMPLETE config
+    const newConfig = { ...resolvedConfig, [key]: target.checked };
+    
+    // Detect if settings match a preset (usually won't - will be 'custom')
     const detectedMode = detectMatchingPreset(newConfig);
     newConfig.mode = detectedMode;
     
