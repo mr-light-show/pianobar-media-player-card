@@ -36,7 +36,7 @@ export class QuickMixPopup extends LitElement {
       z-index: 99999;
       min-width: 280px;
       max-width: 350px;
-      max-height: 500px;
+      max-height: calc(100vh - 100px);
       overflow-y: auto;
       opacity: 0;
       visibility: hidden;
@@ -237,7 +237,9 @@ export class QuickMixPopup extends LitElement {
 
     const menuWidth = 280; // min-width
     const selectableCount = this.stations.filter(s => !s.isQuickMix).length;
-    const menuHeight = Math.min(500, selectableCount * 50 + 80); // Approx height per item + header/footer
+    const estimatedHeight = selectableCount * 50 + 80; // Approx height per item + header/footer
+    const maxMenuHeight = window.innerHeight - 100; // Account for max-height: calc(100vh - 100px)
+    const menuHeight = Math.min(estimatedHeight, maxMenuHeight);
 
     let left = this.anchorPosition.left + (this.anchorPosition.right - this.anchorPosition.left) / 2;
     let top = this.anchorPosition.bottom + 4; // 4px gap below anchor
@@ -248,7 +250,6 @@ export class QuickMixPopup extends LitElement {
     // Clamp to screen edges
     const padding = 8;
     left = Math.max(padding, Math.min(left, window.innerWidth - menuWidth - padding));
-    top = Math.min(top, window.innerHeight - menuHeight - padding);
 
     // If not enough space below, try to show above
     if (top + menuHeight > window.innerHeight - padding) {
@@ -256,6 +257,7 @@ export class QuickMixPopup extends LitElement {
       top = Math.max(padding, top);
       this._showAbove = true;
     } else {
+      top = Math.min(top, window.innerHeight - menuHeight - padding);
       this._showAbove = false;
     }
 

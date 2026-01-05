@@ -43,7 +43,7 @@ export class StationModePopup extends LitElement {
       z-index: 99999;
       min-width: 350px;
       max-width: 500px;
-      max-height: 600px;
+      max-height: calc(100vh - 100px);
       overflow-y: auto;
       opacity: 0;
       visibility: hidden;
@@ -278,7 +278,9 @@ export class StationModePopup extends LitElement {
   private _updateMenuPosition() {
     if (this.anchorPosition) {
       const menuWidth = 400;
-      const menuHeight = Math.min(600, this.modes.length * 80 + 150);
+      const estimatedHeight = this.modes.length * 80 + 150;
+      const maxMenuHeight = window.innerHeight - 100; // Account for max-height: calc(100vh - 100px)
+      const menuHeight = Math.min(estimatedHeight, maxMenuHeight);
       const padding = 8;
       const gap = 4;
 
@@ -293,6 +295,8 @@ export class StationModePopup extends LitElement {
       if (top + menuHeight > window.innerHeight - padding) {
         top = this.anchorPosition.top - gap - menuHeight;
         top = Math.max(padding, top);
+      } else {
+        top = Math.min(top, window.innerHeight - menuHeight - padding);
       }
 
       this._menuLeft = left;

@@ -193,7 +193,9 @@ export class OverflowMenu extends LitElement {
     if (this.showCreateStationOption) itemCount++;
     if (this.showRenameOption) itemCount++;
     if (this.showDeleteOption) itemCount++;
-    const menuHeight = itemCount * 44 + (this.buildTime ? 40 : 0); // Approximate height per item + build time
+    const estimatedHeight = itemCount * 44 + (this.buildTime ? 40 : 0); // Approximate height per item + build time
+    const maxMenuHeight = window.innerHeight - 16; // Account for max-height: calc(100vh - 16px)
+    const menuHeight = Math.min(estimatedHeight, maxMenuHeight);
     const menuWidth = 180;
     const padding = 8;
     const gap = 4;
@@ -204,12 +206,13 @@ export class OverflowMenu extends LitElement {
 
     // Clamp to screen edges
     left = Math.max(padding, Math.min(left, window.innerWidth - menuWidth - padding));
-    top = Math.min(top, window.innerHeight - menuHeight - padding);
 
     // If not enough space below, show above
     if (top + menuHeight > window.innerHeight - padding) {
       top = rect.top - gap - menuHeight;
       top = Math.max(padding, top);
+    } else {
+      top = Math.min(top, window.innerHeight - menuHeight - padding);
     }
 
     this._menuLeft = left;
@@ -296,6 +299,8 @@ export class OverflowMenu extends LitElement {
         gap: 2px;
         z-index: 99999;
         min-width: 180px;
+        max-height: calc(100vh - 16px);
+        overflow-y: auto;
       }
       .pmc-portal-menu .menu-item {
         display: flex;

@@ -66,6 +66,8 @@ export class SongActionsMenu extends LitElement {
       gap: 2px;
       z-index: 99999;
       min-width: 160px;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
       opacity: 0;
       visibility: hidden;
       transition: opacity 0.2s, visibility 0.2s;
@@ -202,7 +204,9 @@ export class SongActionsMenu extends LitElement {
   private _updateMenuPosition() {
     // Use anchor position if provided (for external open), otherwise use component rect
     const rect = this.anchorPosition ?? this.getBoundingClientRect();
-    const menuHeight = 100; // Approximate menu height (3 buttons with reduced padding)
+    const estimatedHeight = 100; // Approximate menu height (3 buttons with reduced padding)
+    const maxMenuHeight = window.innerHeight - 100; // Account for max-height: calc(100vh - 100px)
+    const menuHeight = Math.min(estimatedHeight, maxMenuHeight);
     const menuWidth = 160;
     const padding = 8; // Minimum padding from screen edge
     const gap = 8; // Gap between button and menu
@@ -223,7 +227,7 @@ export class SongActionsMenu extends LitElement {
     const spaceBelow = window.innerHeight - rect.bottom;
     
     // Only show above if there's enough space, otherwise show below
-    this._showAbove = spaceAbove >= menuHeight + gap;
+    this._showAbove = spaceAbove >= menuHeight + gap && spaceBelow < menuHeight + gap;
     
     // Center horizontally on button, but clamp to screen edges
     this._menuLeft = Math.max(padding + menuWidth / 2, Math.min(

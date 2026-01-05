@@ -66,7 +66,7 @@ export class StationSelector extends LitElement {
       z-index: 99999;
       min-width: 200px;
       max-width: 300px;
-      max-height: 400px;
+      max-height: calc(100vh - 100px);
       overflow-y: auto;
       opacity: 0;
       visibility: hidden;
@@ -215,7 +215,9 @@ export class StationSelector extends LitElement {
   private _updateMenuPosition() {
     // Use anchor position if provided (for external open), otherwise use component rect
     const rect = this.anchorPosition ?? this.getBoundingClientRect();
-    const menuHeight = Math.min(400, this.stations.length * 40 + 8); // Approximate menu height
+    const estimatedHeight = this.stations.length * 40 + 8; // Approximate menu height
+    const maxMenuHeight = window.innerHeight - 100; // Account for max-height: calc(100vh - 100px)
+    const menuHeight = Math.min(estimatedHeight, maxMenuHeight);
     const menuWidth = 200; // Approximate menu width
     const padding = 8; // Minimum padding from screen edge
     const gap = 8; // Gap between button and menu
@@ -236,7 +238,7 @@ export class StationSelector extends LitElement {
     const spaceBelow = window.innerHeight - rect.bottom;
 
     // Only show above if there's enough space, otherwise show below
-    this._showAbove = spaceAbove >= menuHeight + gap;
+    this._showAbove = spaceAbove >= menuHeight + gap && spaceBelow < menuHeight + gap;
 
     // Center horizontally on button, but clamp to screen edges
     this._menuLeft = Math.max(padding + menuWidth / 2, Math.min(

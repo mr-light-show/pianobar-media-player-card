@@ -42,7 +42,7 @@ export class UpcomingSongsPopup extends LitElement {
       z-index: 99999;
       min-width: 300px;
       max-width: 400px;
-      max-height: 500px;
+      max-height: calc(100vh - 100px);
       overflow-y: auto;
       opacity: 0;
       visibility: hidden;
@@ -220,7 +220,9 @@ export class UpcomingSongsPopup extends LitElement {
     if (this.anchorPosition) {
       // Use anchor position for popup positioning
       const menuWidth = 350;
-      const menuHeight = Math.min(500, this.songs.length * 64 + 50);
+      const estimatedHeight = this.songs.length * 64 + 50;
+      const maxMenuHeight = window.innerHeight - 100; // Account for max-height: calc(100vh - 100px)
+      const menuHeight = Math.min(estimatedHeight, maxMenuHeight);
       const padding = 8;
       const gap = 4;
 
@@ -235,6 +237,8 @@ export class UpcomingSongsPopup extends LitElement {
       if (top + menuHeight > window.innerHeight - padding) {
         top = this.anchorPosition.top - gap - menuHeight;
         top = Math.max(padding, top);
+      } else {
+        top = Math.min(top, window.innerHeight - menuHeight - padding);
       }
 
       this._menuLeft = left;

@@ -58,7 +58,7 @@ export class AddMusicPopup extends LitElement {
       z-index: 99999;
       width: 90vw;
       max-width: 500px;
-      max-height: 80vh;
+      max-height: calc(100vh - 100px);
       opacity: 0;
       visibility: hidden;
       transition: opacity 0.2s, visibility 0.2s;

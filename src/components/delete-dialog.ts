@@ -35,6 +35,7 @@ export class DeleteDialog extends LitElement {
       z-index: 99999;
       min-width: 320px;
       max-width: 450px;
+      max-height: calc(100vh - 100px);
       opacity: 0;
       visibility: hidden;
       transition: opacity 0.2s, visibility 0.2s;
@@ -56,8 +57,9 @@ export class DeleteDialog extends LitElement {
 
     .dialog-body {
       padding: 20px;
-      max-height: 400px;
       overflow-y: auto;
+      flex: 1;
+      min-height: 0;
     }
 
     .station-list {
