@@ -39,8 +39,8 @@ const MODE_PRESETS: Record<CardMode, ModePreset> = {
     artwork: 'full-cover',
     showDetails: true,
     showTitle: true,
-    showArtist: true,
-    showAlbum: true,
+    showArtist: false,
+    showAlbum: false,
     reserveDetailsSpace: true,
     showVolumeControl: true,
     showSongActions: true,
@@ -128,7 +128,7 @@ export function resolveConfig(config: PianobarCardConfig): ResolvedConfig {
     };
   }
 
-  // Preset modes: use preset values, ignore user overrides (except volume_entity, name, showProgressTime, showPowerButton, stationDisplay)
+  // Preset modes: use preset values, ignore user overrides (except volume_entity, name)
   return {
     entity: config.entity,
     mode,
@@ -141,10 +141,10 @@ export function resolveConfig(config: PianobarCardConfig): ResolvedConfig {
     showVolumeControl: preset.showVolumeControl,
     showSongActions: preset.showSongActions,
     showProgressBar: preset.showProgressBar,
-    showProgressTime: config.showProgressTime ?? preset.showProgressTime,
+    showProgressTime: preset.showProgressTime,
     showPlaybackControls: preset.showPlaybackControls,
-    showPowerButton: config.showPowerButton ?? preset.showPowerButton,
-    stationDisplay: config.stationDisplay ?? preset.stationDisplay,
+    showPowerButton: preset.showPowerButton,
+    stationDisplay: preset.stationDisplay,
     volume_entity: config.volume_entity,
     name: config.name,
   };
