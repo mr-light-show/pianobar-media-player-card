@@ -10,6 +10,7 @@ export class OverflowMenu extends LitElement {
   @property({ type: Boolean }) showUpcomingOption = false;
   @property({ type: Boolean }) showStationModeOption = false;
   @property({ type: Boolean }) showQuickMixOption = false;
+  @property({ type: Boolean }) showRenameOption = false;
   @property({ type: Boolean }) isOn = true;
   @property({ type: Boolean }) disabled = false;
   @property({ type: String }) buildTime = '';
@@ -175,6 +176,7 @@ export class OverflowMenu extends LitElement {
     if (this.showUpcomingOption) itemCount++;
     if (this.showStationModeOption) itemCount++;
     if (this.showQuickMixOption) itemCount++;
+    if (this.showRenameOption) itemCount++;
     const menuHeight = itemCount * 44 + (this.buildTime ? 40 : 0); // Approximate height per item + build time
     const menuWidth = 180;
     const padding = 8;
@@ -373,6 +375,26 @@ export class OverflowMenu extends LitElement {
       `;
     }
     
+    // Divider before station management actions
+    if (this.showQuickMixOption || this.showRenameOption) {
+      menuItems += `<div style="height: 1px; background: var(--divider-color, rgba(0, 0, 0, 0.1)); margin: 4px 0;"></div>`;
+    }
+    
+    // Station management actions
+    if (this.showRenameOption) {
+      menuItems += `
+        <button class="menu-item" data-action="rename-station">
+          <ha-icon icon="mdi:pencil"></ha-icon>
+          <span>Rename Station</span>
+        </button>
+      `;
+    }
+    
+    // Divider before system actions
+    if (this.showStationOption || this.showRenameOption) {
+      menuItems += `<div style="height: 1px; background: var(--divider-color, rgba(0, 0, 0, 0.1)); margin: 4px 0;"></div>`;
+    }
+    
     // Station/System actions
     if (this.showStationOption) {
       menuItems += `
@@ -438,6 +460,9 @@ export class OverflowMenu extends LitElement {
         } else if (action === 'quickmix') {
           const rect = (item as Element).getBoundingClientRect();
           this.dispatchEvent(new CustomEvent('quickmix', { bubbles: true, composed: true, detail: { anchorPosition: { left: rect.left, top: rect.top, bottom: rect.bottom, right: rect.right } } }));
+        } else if (action === 'rename-station') {
+          const rect = (item as Element).getBoundingClientRect();
+          this.dispatchEvent(new CustomEvent('rename-station', { bubbles: true, composed: true, detail: { anchorPosition: { left: rect.left, top: rect.top, bottom: rect.bottom, right: rect.right } } }));
         }
         this._menuOpen = false;
         this._updatePortalContent();

@@ -23,6 +23,7 @@ import './components/overflow-menu';
 import './components/upcoming-songs-popup';
 import './components/station-mode-popup';
 import './components/quickmix-popup';
+import './components/rename-dialog';
 import './pianobar-card-editor';
 
 // Card registration info
@@ -64,6 +65,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   @state() private _stationModes: unknown[] = [];
   @state() private _stationModesLoading = false;
   @state() private _openQuickMixPopup = false;
+  @state() private _openRenameDialog = false;
 
   private _resizeObserver?: ResizeObserver;
 
@@ -503,6 +505,8 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const showStationMode = isOn && hasStations && currentStation && !currentStation.isQuickMix;
     // Show QuickMix option if player is on and we have stations (including QuickMix itself)
     const showQuickMix = isOn && hasStations;
+    // Show Rename option if player is on and we have renameable stations
+    const showRename = isOn && hasStations;
 
     return html`
       <pmc-overflow-menu
@@ -514,6 +518,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         .showUpcomingOption=${isOn}
         .showStationModeOption=${showStationMode}
         .showQuickMixOption=${showQuickMix}
+        .showRenameOption=${showRename}
         .isOn=${isOn}
         .disabled=${this._isUnavailable(entity)}
         .buildTime=${__BUILD_TIMESTAMP__}
@@ -525,6 +530,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         @show-upcoming=${this._handleShowUpcoming}
         @station-mode=${this._handleStationMode}
         @quickmix=${this._handleQuickMix}
+        @rename-station=${this._handleRenameStation}
       ></pmc-overflow-menu>
     `;
   }
@@ -775,6 +781,58 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     }
   }
 
+  // Rename handlers
+  private _handleRenameStation(e: CustomEvent): void {
+    this._popupAnchorPosition = e.detail?.anchorPosition;
+    this._openRenameDialog = true;
+  }
+
+  private _handleRenameDialogClosed(): void {
+    this._openRenameDialog = false;
+    this._popupAnchorPosition = undefined;
+  }
+
+  private async _handleRenameStationSubmit(e: CustomEvent): Promise<void> {
+    const entity = this._getEntity();
+    if (!entity || !this.hass) return;
+
+    const { stationId, newName } = e.detail;
+    
+    try {
+      await this.hass.callService(
+        'pianobar',
+        'rename_station',
+        { station_id: stationId, new_name: newName },
+        { entity_id: entity.entity_id }
+      );
+      
+      // Show success toast
+      const event = new CustomEvent('hass-notification', {
+        detail: {
+          message: `Station renamed to "${newName}"`,
+          duration: 2000,
+        },
+        bubbles: true,
+        composed: true,
+      });
+      this.dispatchEvent(event);
+      
+      // Close the dialog
+      this._handleRenameDialogClosed();
+    } catch (err) {
+      console.error('Error renaming station:', err);
+      const errorEvent = new CustomEvent('hass-notification', {
+        detail: {
+          message: 'Error renaming station',
+          duration: 3000,
+        },
+        bubbles: true,
+        composed: true,
+      });
+      this.dispatchEvent(errorEvent);
+    }
+  }
+
   private _renderStationPopup(entity: HassEntity): TemplateResult | typeof nothing {
     const stationDisplay = this._resolvedConfig?.stationDisplay ?? 'hidden';
     // Render popup-only selector for normal mode OR when explicitly opened (e.g., from overflow menu)
@@ -895,6 +953,24 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     `;
   }
 
+  private _renderRenameDialog(entity: HassEntity): TemplateResult | typeof nothing {
+    if (!this._openRenameDialog) return nothing;
+
+    const stations = (entity.attributes.stations as Station[]) || [];
+    const unavailable = this._isUnavailable(entity);
+
+    return html`
+      <pmc-rename-dialog
+        .stations=${stations}
+        .disabled=${unavailable}
+        .externalOpen=${this._openRenameDialog}
+        .anchorPosition=${this._popupAnchorPosition}
+        @rename-station=${this._handleRenameStationSubmit}
+        @dialog-closed=${this._handleRenameDialogClosed}
+      ></pmc-rename-dialog>
+    `;
+  }
+
   private _renderStationPill(entity: HassEntity): TemplateResult | typeof nothing {
     const stationDisplay = this._resolvedConfig?.stationDisplay ?? 'hidden';
     if (stationDisplay === 'hidden') return nothing;
@@ -979,6 +1055,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       ${this._renderUpcomingPopup()}
       ${this._renderStationModePopup(entity)}
       ${this._renderQuickMixPopup(entity)}
+      ${this._renderRenameDialog(entity)}
     `;
   }
 
@@ -1097,6 +1174,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         ${this._renderUpcomingPopup()}
         ${this._renderStationModePopup(entity)}
         ${this._renderQuickMixPopup(entity)}
+        ${this._renderRenameDialog(entity)}
       </ha-card>
     `;
   }
