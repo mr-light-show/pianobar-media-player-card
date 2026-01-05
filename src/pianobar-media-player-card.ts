@@ -736,7 +736,6 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         'pianobar',
         'set_station_mode',
         { 
-          entity_id: entity.entity_id,
           station_id: stationId,
           mode_id: modeId
         }
@@ -789,7 +788,6 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         'pianobar',
         'set_quick_mix',
         { 
-          entity_id: entity.entity_id,
           station_ids: stationIds
         }
       );
@@ -843,7 +841,6 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         'pianobar',
         'rename_station',
         { 
-          entity_id: entity.entity_id,
           station_id: stationId,
           name: newName
         }
@@ -898,7 +895,6 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         'pianobar',
         'delete_station',
         { 
-          entity_id: entity.entity_id,
           station_id: stationId
         }
       );
@@ -995,7 +991,6 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         'pianobar',
         'delete_seed',
         { 
-          entity_id: entity.entity_id,
           seed_id: seedId,
           seed_type: seedType,
           station_id: stationId
@@ -1040,7 +1035,6 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         'pianobar',
         'delete_feedback',
         { 
-          entity_id: entity.entity_id,
           feedback_id: feedbackId,
           station_id: stationId
         }
@@ -1096,17 +1090,18 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     this._searchLoading = true;
 
     try {
-      const response = await this.hass.callService(
-        'pianobar',
-        'search',
-        { 
-          entity_id: entity.entity_id,
+      const response = await this.hass.connection.sendMessagePromise({
+        type: 'call_service',
+        domain: 'pianobar',
+        service: 'search',
+        service_data: { 
           query: query
-        }
-      ) as { categories?: any[] } | undefined;
+        },
+        return_response: true,
+      }) as any;
 
       this._searchResults = {
-        categories: response?.categories || []
+        categories: response?.response?.categories || []
       };
     } catch (err) {
       console.error('Error searching:', err);
@@ -1136,7 +1131,6 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         'pianobar',
         'add_seed',
         { 
-          entity_id: entity.entity_id,
           music_id: musicId,
           station_id: stationId
         }
@@ -1200,7 +1194,6 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         'pianobar',
         'create_station',
         { 
-          entity_id: entity.entity_id,
           type: 'song',
           track_token: trackToken
         }
@@ -1232,7 +1225,6 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         'pianobar',
         'create_station',
         { 
-          entity_id: entity.entity_id,
           type: 'artist',
           track_token: trackToken
         }
@@ -1260,17 +1252,18 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     this._searchLoading = true;
 
     try {
-      const response = await this.hass.callService(
-        'pianobar',
-        'search',
-        { 
-          entity_id: entity.entity_id,
+      const response = await this.hass.connection.sendMessagePromise({
+        type: 'call_service',
+        domain: 'pianobar',
+        service: 'search',
+        service_data: { 
           query: query
-        }
-      ) as { categories?: any[] } | undefined;
+        },
+        return_response: true,
+      }) as any;
 
       this._searchResults = {
-        categories: response?.categories || []
+        categories: response?.response?.categories || []
       };
     } catch (err) {
       console.error('Error searching:', err);
@@ -1292,13 +1285,15 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     this._genreLoading = true;
 
     try {
-      const response = await this.hass.callService(
-        'pianobar',
-        'get_genres',
-        { entity_id: entity.entity_id }
-      ) as { categories?: any[] } | undefined;
+      const response = await this.hass.connection.sendMessagePromise({
+        type: 'call_service',
+        domain: 'pianobar',
+        service: 'get_genres',
+        service_data: {},
+        return_response: true,
+      }) as any;
 
-      this._genreCategories = response?.categories || [];
+      this._genreCategories = response?.response?.categories || [];
     } catch (err) {
       console.error('Error fetching genres:', err);
       this._genreCategories = [];
@@ -1323,7 +1318,6 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         'pianobar',
         'create_station_from_music_id',
         { 
-          entity_id: entity.entity_id,
           music_id: musicId
         }
       );
@@ -1353,7 +1347,6 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         'pianobar',
         'add_shared_station',
         { 
-          entity_id: entity.entity_id,
           station_id: stationId
         }
       );
