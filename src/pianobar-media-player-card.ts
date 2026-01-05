@@ -1746,6 +1746,16 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       return html`
         <ha-card class="${cardClasses}">
           ${this._renderTallMode(entity)}
+          ${this._renderStationPopup(entity)}
+          ${this._renderRatingsPopup(entity)}
+          ${this._renderUpcomingPopup()}
+          ${this._renderStationModePopup(entity)}
+          ${this._renderQuickMixPopup(entity)}
+          ${this._renderRenameDialog(entity)}
+          ${this._renderDeleteDialog(entity)}
+          ${this._renderStationInfoPopup(entity)}
+          ${this._renderAddMusicPopup(entity)}
+          ${this._renderCreateStationModal(entity)}
         </ha-card>
       `;
     }
