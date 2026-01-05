@@ -6,8 +6,9 @@ export interface HomeAssistant {
     domain: string,
     service: string,
     data?: Record<string, unknown>,
-    target?: { entity_id: string | string[] }
-  ) => Promise<void>;
+    target?: { entity_id: string | string[] },
+    returnResponse?: boolean
+  ) => Promise<unknown>;
   connection: {
     subscribeEvents: (
       callback: (event: unknown) => void,

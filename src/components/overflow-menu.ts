@@ -6,6 +6,7 @@ export class OverflowMenu extends LitElement {
   @property({ type: String }) entityId = '';
   @property({ type: Boolean }) showStationOption = false;
   @property({ type: Boolean }) showRatingsOption = false;
+  @property({ type: Boolean }) showExplainOption = false;
   @property({ type: Boolean }) isOn = true;
   @property({ type: Boolean }) disabled = false;
   @property({ type: String }) buildTime = '';
@@ -167,6 +168,7 @@ export class OverflowMenu extends LitElement {
     let itemCount = 2; // More Information and Connect/Disconnect are always shown
     if (this.showStationOption) itemCount++;
     if (this.showRatingsOption) itemCount++;
+    if (this.showExplainOption) itemCount++;
     const menuHeight = itemCount * 44 + (this.buildTime ? 40 : 0); // Approximate height per item + build time
     const menuWidth = 180;
     const padding = 8;
@@ -305,7 +307,43 @@ export class OverflowMenu extends LitElement {
     `;
 
     // Build menu items HTML
-    let menuItems = `
+    let menuItems = '';
+    
+    // Song actions section (if any are shown)
+    if (this.showExplainOption) {
+      menuItems += `
+        <button class="menu-item" data-action="explain-song">
+          <ha-icon icon="mdi:comment-question-outline"></ha-icon>
+          <span>Why this song?</span>
+        </button>
+      `;
+    }
+    
+    if (this.showRatingsOption) {
+      menuItems += `
+        <button class="menu-item" data-action="select-ratings">
+          <ha-icon icon="mdi:thumbs-up-down-outline"></ha-icon>
+          <span>Song Ratings</span>
+        </button>
+      `;
+    }
+
+    // Divider if song actions exist
+    if (this.showExplainOption || this.showRatingsOption) {
+      menuItems += `<div style="height: 1px; background: var(--divider-color, rgba(0, 0, 0, 0.1)); margin: 4px 0;"></div>`;
+    }
+    
+    // Station/System actions
+    if (this.showStationOption) {
+      menuItems += `
+        <button class="menu-item" data-action="select-station">
+          <ha-icon icon="mdi:radio"></ha-icon>
+          <span>Select Station</span>
+        </button>
+      `;
+    }
+    
+    menuItems += `
       <button class="menu-item" data-action="more-info">
         <ha-icon icon="mdi:information-outline"></ha-icon>
         <span>More Information</span>
@@ -315,24 +353,6 @@ export class OverflowMenu extends LitElement {
         <span>${this.isOn ? 'Disconnect' : 'Connect'}</span>
       </button>
     `;
-
-    if (this.showStationOption) {
-      menuItems += `
-        <button class="menu-item" data-action="select-station">
-          <ha-icon icon="mdi:radio"></ha-icon>
-          <span>Select Station</span>
-        </button>
-      `;
-    }
-
-    if (this.showRatingsOption) {
-      menuItems += `
-        <button class="menu-item" data-action="select-ratings">
-          <ha-icon icon="mdi:thumbs-up-down-outline"></ha-icon>
-          <span>Song Ratings</span>
-        </button>
-      `;
-    }
 
     if (this.buildTime) {
       menuItems += `<div class="build-time">${this._formatBuildTime(this.buildTime)}</div>`;
@@ -367,6 +387,8 @@ export class OverflowMenu extends LitElement {
         } else if (action === 'select-ratings') {
           const rect = (item as Element).getBoundingClientRect();
           this.dispatchEvent(new CustomEvent('select-ratings', { bubbles: true, composed: true, detail: { anchorPosition: { left: rect.left, top: rect.top, bottom: rect.bottom, right: rect.right } } }));
+        } else if (action === 'explain-song') {
+          this.dispatchEvent(new CustomEvent('explain-song', { bubbles: true, composed: true }));
         }
         this._menuOpen = false;
         this._updatePortalContent();

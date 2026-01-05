@@ -191,6 +191,11 @@ interface SampleRegion {
 const METADATA_REGION: SampleRegion = { x: 0, y: 0, width: 0.4, height: 0.7 };
 const CONTROLS_REGION: SampleRegion = { x: 0, y: 0.7, width: 1, height: 0.3 };
 
+// Overlay opacity values matching .fullcover-overlay CSS gradient
+// gradient: to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.2) 100%
+const METADATA_OVERLAY_OPACITY = 0.3; // ~average for top 70% (0.2 to 0.4)
+const CONTROLS_OVERLAY_OPACITY = 0.7; // ~average for bottom 30% (0.6 to 0.8)
+
 /**
  * Get average color from a region of image data
  */
@@ -230,12 +235,35 @@ function rgbToHex(rgb: number[]): string {
 }
 
 /**
- * Find a contrasting color for a given background
- * Returns white or black based on luminance, or a tinted version
+ * Simulate blending a color with a black overlay
+ * @param rgb - Original RGB color
+ * @param overlayOpacity - Opacity of black overlay (0-1)
+ * @returns RGB color after overlay is applied
  */
-function getContrastingColor(bgRgb: number[]): string {
-  const lum = luminance(bgRgb[0], bgRgb[1], bgRgb[2]);
-  // If background is dark, use white; if light, use dark gray
+function applyBlackOverlay(rgb: number[], overlayOpacity: number): number[] {
+  // Blend with black: result = original * (1 - opacity) + black * opacity
+  // Since black is [0,0,0], this simplifies to: result = original * (1 - opacity)
+  const factor = 1 - overlayOpacity;
+  return [
+    Math.round(rgb[0] * factor),
+    Math.round(rgb[1] * factor),
+    Math.round(rgb[2] * factor),
+  ];
+}
+
+/**
+ * Find a contrasting color for a given background, accounting for overlay
+ * @param bgRgb - Original background RGB from the image
+ * @param overlayOpacity - Opacity of black overlay applied over this region (0-1)
+ * Returns white or black based on luminance after overlay is applied
+ */
+function getContrastingColor(bgRgb: number[], overlayOpacity: number = 0): string {
+  // Apply the overlay effect to simulate what the user actually sees
+  const effectiveBg = applyBlackOverlay(bgRgb, overlayOpacity);
+  const lum = luminance(effectiveBg[0], effectiveBg[1], effectiveBg[2]);
+  
+  // If effective background is dark, use white; if light, use dark gray
+  // With overlay applied, light regions become darker, so we're more likely to use white
   if (lum < 0.5) {
     return '#ffffff';
   } else {
@@ -293,9 +321,9 @@ export async function extractRegionalColors(imageUrl: string | undefined): Promi
     const metadataAvg = getRegionAverageColor(imageData, METADATA_REGION, canvas.width, canvas.height);
     const controlsAvg = getRegionAverageColor(imageData, CONTROLS_REGION, canvas.width, canvas.height);
 
-    // Get contrasting colors for each region
-    const metadataForeground = getContrastingColor(metadataAvg);
-    const controlsForeground = getContrastingColor(controlsAvg);
+    // Get contrasting colors for each region, accounting for the dark overlay
+    const metadataForeground = getContrastingColor(metadataAvg, METADATA_OVERLAY_OPACITY);
+    const controlsForeground = getContrastingColor(controlsAvg, CONTROLS_OVERLAY_OPACITY);
 
     const result: ExtractedColors = {
       ...baseColors,

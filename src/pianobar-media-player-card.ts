@@ -487,6 +487,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const stations = (entity.attributes.stations as Station[]) || [];
     const hasStations = stations.length > 0;
     const hasRatings = this._supportsAnyRating(entity);
+    const hasCurrentSong = !!entity.attributes.media_title;
     const isOn = entity.state !== 'off' && entity.state !== 'unavailable';
 
     return html`
@@ -495,6 +496,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         .entityId=${entity.entity_id}
         .showStationOption=${hasStations}
         .showRatingsOption=${hasRatings}
+        .showExplainOption=${hasCurrentSong}
         .isOn=${isOn}
         .disabled=${this._isUnavailable(entity)}
         .buildTime=${__BUILD_TIMESTAMP__}
@@ -502,6 +504,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         @power-toggle=${this._handlePowerToggle}
         @select-station=${this._handleOpenStationPopup}
         @select-ratings=${this._handleOpenRatingsPopup}
+        @explain-song=${this._handleExplainSong}
       ></pmc-overflow-menu>
     `;
   }
@@ -511,6 +514,47 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const event = new Event('hass-more-info', { composed: true });
     (event as any).detail = { entityId: e.detail?.entityId };
     this.dispatchEvent(event);
+  }
+
+  private async _handleExplainSong(): Promise<void> {
+    const entity = this._getEntity();
+    if (!entity || !this.hass) return;
+
+    try {
+      // Call the service with return_response flag
+      const response = await this.hass.callService(
+        'pianobar',
+        'explain_song',
+        {},
+        { entity_id: entity.entity_id },
+        true // Return response
+      ) as { explanation?: string } | undefined;
+
+      const explanation = response?.explanation || 'No explanation available';
+      
+      // Show toast notification using Home Assistant's notification system
+      const event = new CustomEvent('hass-notification', {
+        detail: {
+          message: explanation,
+          duration: 8000, // Show for 8 seconds
+        },
+        bubbles: true,
+        composed: true,
+      });
+      this.dispatchEvent(event);
+    } catch (err) {
+      console.error('Error explaining song:', err);
+      // Show error toast
+      const event = new CustomEvent('hass-notification', {
+        detail: {
+          message: 'Failed to get song explanation',
+          duration: 3000,
+        },
+        bubbles: true,
+        composed: true,
+      });
+      this.dispatchEvent(event);
+    }
   }
 
   private _handleOpenStationPopup(e: CustomEvent): void {
