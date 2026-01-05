@@ -579,7 +579,6 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const entity = this._getEntity();
     if (!entity || !this.hass) return;
 
-    console.log('[ExplainSong] Starting...');
     try {
       // Call the service using WebSocket API to get response data
       const response = await this.hass.connection.sendMessagePromise({
@@ -590,9 +589,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         return_response: true,
       }) as any;
 
-      console.log('[ExplainSong] Response:', response);
       const explanation = response?.response?.explanation || 'No explanation available';
-      console.log('[ExplainSong] Explanation:', explanation);
       
       // Show toast notification using Home Assistant's notification system
       const event = new CustomEvent('hass-notification', {
@@ -604,9 +601,8 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         composed: true,
       });
       this.dispatchEvent(event);
-      console.log('[ExplainSong] Toast dispatched');
     } catch (err) {
-      console.error('[ExplainSong] Error:', err);
+      console.error('Error explaining song:', err);
       // Show error toast
       const event = new CustomEvent('hass-notification', {
         detail: {
@@ -1688,6 +1684,8 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       ${this._renderRatingsPopup(entity)}
       ${this._renderUpcomingPopup()}
       ${this._renderStationModePopup(entity)}
+      ${this._renderUpcomingPopup()}
+      ${this._renderStationModePopup(entity)}
       ${this._renderQuickMixPopup(entity)}
       ${this._renderRenameDialog(entity)}
       ${this._renderDeleteDialog(entity)}
@@ -1809,6 +1807,8 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
         ${this._renderStationPopup(entity)}
         ${this._renderRatingsPopup(entity)}
+        ${this._renderUpcomingPopup()}
+        ${this._renderStationModePopup(entity)}
         ${this._renderUpcomingPopup()}
         ${this._renderStationModePopup(entity)}
         ${this._renderQuickMixPopup(entity)}
