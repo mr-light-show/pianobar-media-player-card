@@ -146,8 +146,14 @@ ssh ${HA_USER}@${HA_HOST} "sudo chown -R ${HA_USER}:${HA_USER} ${HA_WWW_PATH} 2>
 
 # Copy to Home Assistant using rsync (scp often fails on HA OS)
 echo -e "${YELLOW}Deploying to Home Assistant...${NC}"
+
+# Generate gzip version for better performance
+gzip -9 -c "$PROJECT_DIR/dist/${CARD_NAME}.js" > "$PROJECT_DIR/dist/${CARD_NAME}.js.gz"
+
+# Copy both .js and .js.gz files
 rsync -az --checksum \
     "$PROJECT_DIR/dist/${CARD_NAME}.js" \
+    "$PROJECT_DIR/dist/${CARD_NAME}.js.gz" \
     "${HA_USER}@${HA_HOST}:${HA_WWW_PATH}/"
 
 echo ""
