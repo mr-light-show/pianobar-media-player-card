@@ -2,7 +2,7 @@
 node_modules/
 
 # Build output
-dist/
+# dist/ - commented out for HACS compliance (needs built files in repo)
 
 # IDE
 .idea/
