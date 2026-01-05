@@ -139,6 +139,49 @@ const colorsFromPicture = async (picture: string): Promise<[string, string]> =>
   new Vibrant(picture, { colorCount: 16 }).getPalette();
 
 /**
+ * Extract vibrant colors from a specific region of a canvas
+ * @param canvas - Source canvas with the full image
+ * @param region - Region definition (fractional coordinates)
+ * @returns [foreground, background] hex colors for the region
+ */
+async function extractVibrantFromRegion(
+  canvas: HTMLCanvasElement,
+  region: SampleRegion
+): Promise<[string, string]> {
+  // Create a temporary canvas for the region
+  const regionCanvas = document.createElement('canvas');
+  const regionCtx = regionCanvas.getContext('2d');
+  if (!regionCtx) {
+    throw new Error('Failed to get canvas context');
+  }
+  
+  // Calculate region bounds
+  const x = Math.floor(region.x * canvas.width);
+  const y = Math.floor(region.y * canvas.height);
+  const w = Math.floor(region.width * canvas.width);
+  const h = Math.floor(region.height * canvas.height);
+  
+  // Ensure minimum size for vibrant extraction
+  if (w < 1 || h < 1) {
+    throw new Error('Region too small');
+  }
+  
+  // Copy region to new canvas
+  regionCanvas.width = w;
+  regionCanvas.height = h;
+  const sourceCtx = canvas.getContext('2d');
+  if (!sourceCtx) {
+    throw new Error('Failed to get source canvas context');
+  }
+  const imageData = sourceCtx.getImageData(x, y, w, h);
+  regionCtx.putImageData(imageData, 0, 0);
+  
+  // Extract colors from region using vibrant
+  const dataUrl = regionCanvas.toDataURL();
+  return await colorsFromPicture(dataUrl);
+}
+
+/**
  * Extract colors from an artwork image URL.
  * Results are cached per URL.
  */
@@ -193,8 +236,9 @@ const CONTROLS_REGION: SampleRegion = { x: 0, y: 0.7, width: 1, height: 0.3 };
 
 // Overlay opacity values matching .fullcover-overlay CSS gradient
 // gradient: to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.2) 100%
-const METADATA_OVERLAY_OPACITY = 0.3; // ~average for top 70% (0.2 to 0.4)
-const CONTROLS_OVERLAY_OPACITY = 0.7; // ~average for bottom 30% (0.6 to 0.8)
+// Reduced values to allow more vibrant colors while maintaining contrast
+const METADATA_OVERLAY_OPACITY = 0.15; // ~average for top 70% (lighter, allows more color)
+const CONTROLS_OVERLAY_OPACITY = 0.45; // ~average for bottom 30% (still dark but not extreme)
 
 /**
  * Get average color from a region of image data
@@ -252,18 +296,93 @@ function applyBlackOverlay(rgb: number[], overlayOpacity: number): number[] {
 }
 
 /**
- * Find a contrasting color for a given background, accounting for overlay
- * @param bgRgb - Original background RGB from the image
- * @param overlayOpacity - Opacity of black overlay applied over this region (0-1)
- * Returns white or black based on luminance after overlay is applied
+ * Convert hex color to RGB array
  */
-function getContrastingColor(bgRgb: number[], overlayOpacity: number = 0): string {
+function hexToRgb(hex: string): number[] {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)]
+    : [0, 0, 0];
+}
+
+/**
+ * Adjust color brightness to meet contrast requirements
+ * @param fgRgb - Foreground color to adjust
+ * @param bgRgb - Background color (with overlay applied)
+ * @param targetContrast - Desired contrast ratio (default 4.5)
+ * @returns Adjusted foreground color as RGB array, or null if adjustment fails
+ */
+function adjustColorForContrast(
+  fgRgb: number[],
+  bgRgb: number[],
+  targetContrast: number = CONTRAST_RATIO
+): number[] | null {
+  const currentContrast = getContrastRatio(fgRgb, bgRgb);
+  
+  // Already meets contrast requirements
+  if (currentContrast >= targetContrast) {
+    return fgRgb;
+  }
+  
+  // Determine if we need to lighten or darken based on background luminance
+  const bgLum = luminance(bgRgb[0], bgRgb[1], bgRgb[2]);
+  const shouldLighten = bgLum < 0.5;
+  
+  // Try adjusting brightness in steps
+  let adjusted = [...fgRgb];
+  for (let i = 0; i < 20; i++) {
+    const factor = shouldLighten ? 1.1 : 0.9;
+    adjusted = adjusted.map(c => Math.min(255, Math.max(0, Math.round(c * factor))));
+    
+    const newContrast = getContrastRatio(adjusted, bgRgb);
+    if (newContrast >= targetContrast) {
+      return adjusted;
+    }
+    
+    // If we've maxed out at white or black, stop trying
+    if (shouldLighten && adjusted.every(c => c >= 255)) break;
+    if (!shouldLighten && adjusted.every(c => c <= 0)) break;
+  }
+  
+  // Adjustment failed, return null to fallback
+  return null;
+}
+
+/**
+ * Find a contrasting color for a given background, accounting for overlay
+ * Now attempts to use vibrant colors first, with fallback to white/black
+ * @param bgRgb - Original background RGB from the image
+ * @param vibrantFgHex - Vibrant foreground color to try first (optional)
+ * @param overlayOpacity - Opacity of black overlay applied over this region (0-1)
+ * @returns Contrasting color as hex string
+ */
+function getContrastingColor(
+  bgRgb: number[], 
+  vibrantFgHex: string | null = null,
+  overlayOpacity: number = 0
+): string {
   // Apply the overlay effect to simulate what the user actually sees
   const effectiveBg = applyBlackOverlay(bgRgb, overlayOpacity);
-  const lum = luminance(effectiveBg[0], effectiveBg[1], effectiveBg[2]);
   
-  // If effective background is dark, use white; if light, use dark gray
-  // With overlay applied, light regions become darker, so we're more likely to use white
+  // If we have a vibrant color, try to use it
+  if (vibrantFgHex) {
+    const vibrantRgb = hexToRgb(vibrantFgHex);
+    
+    // Check if vibrant color already has good contrast
+    const currentContrast = getContrastRatio(vibrantRgb, effectiveBg);
+    if (currentContrast >= CONTRAST_RATIO) {
+      return vibrantFgHex;
+    }
+    
+    // Try to adjust the vibrant color to meet contrast requirements
+    const adjusted = adjustColorForContrast(vibrantRgb, effectiveBg);
+    if (adjusted) {
+      return rgbToHex(adjusted);
+    }
+  }
+  
+  // Fallback: use white or black based on luminance
+  const lum = luminance(effectiveBg[0], effectiveBg[1], effectiveBg[2]);
   if (lum < 0.5) {
     return '#ffffff';
   } else {
@@ -317,13 +436,33 @@ export async function extractRegionalColors(imageUrl: string | undefined): Promi
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-    // Sample regions
-    const metadataAvg = getRegionAverageColor(imageData, METADATA_REGION, canvas.width, canvas.height);
-    const controlsAvg = getRegionAverageColor(imageData, CONTROLS_REGION, canvas.width, canvas.height);
-
-    // Get contrasting colors for each region, accounting for the dark overlay
-    const metadataForeground = getContrastingColor(metadataAvg, METADATA_OVERLAY_OPACITY);
-    const controlsForeground = getContrastingColor(controlsAvg, CONTROLS_OVERLAY_OPACITY);
+    // Extract vibrant colors from each region
+    let metadataForeground: string;
+    let controlsForeground: string;
+    
+    try {
+      // Extract vibrant colors from metadata region (top-left)
+      const [metadataVibrantFg, metadataVibrantBg] = await extractVibrantFromRegion(canvas, METADATA_REGION);
+      const metadataAvg = getRegionAverageColor(imageData, METADATA_REGION, canvas.width, canvas.height);
+      metadataForeground = getContrastingColor(metadataAvg, metadataVibrantFg, METADATA_OVERLAY_OPACITY);
+    } catch (err) {
+      console.warn('Failed to extract vibrant colors from metadata region:', err);
+      // Fallback to average color method
+      const metadataAvg = getRegionAverageColor(imageData, METADATA_REGION, canvas.width, canvas.height);
+      metadataForeground = getContrastingColor(metadataAvg, null, METADATA_OVERLAY_OPACITY);
+    }
+    
+    try {
+      // Extract vibrant colors from controls region (bottom)
+      const [controlsVibrantFg, controlsVibrantBg] = await extractVibrantFromRegion(canvas, CONTROLS_REGION);
+      const controlsAvg = getRegionAverageColor(imageData, CONTROLS_REGION, canvas.width, canvas.height);
+      controlsForeground = getContrastingColor(controlsAvg, controlsVibrantFg, CONTROLS_OVERLAY_OPACITY);
+    } catch (err) {
+      console.warn('Failed to extract vibrant colors from controls region:', err);
+      // Fallback to average color method
+      const controlsAvg = getRegionAverageColor(imageData, CONTROLS_REGION, canvas.width, canvas.height);
+      controlsForeground = getContrastingColor(controlsAvg, null, CONTROLS_OVERLAY_OPACITY);
+    }
 
     const result: ExtractedColors = {
       ...baseColors,

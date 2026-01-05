@@ -584,9 +584,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       const response = await this.hass.callService(
         'pianobar',
         'explain_song',
-        {},
-        { entity_id: entity.entity_id },
-        true // Return response
+        { entity_id: entity.entity_id }
       ) as { explanation?: string } | undefined;
 
       const explanation = response?.explanation || 'No explanation available';
@@ -647,9 +645,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       const response = await this.hass.callService(
         'pianobar',
         'get_upcoming',
-        {},
-        { entity_id: entity.entity_id },
-        true // Return response
+        { entity_id: entity.entity_id }
       ) as { songs?: unknown[] } | undefined;
 
       this._upcomingSongs = response?.songs || [];
@@ -693,9 +689,10 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       const response = await this.hass.callService(
         'pianobar',
         'get_station_modes',
-        { station_id: stationId },
-        { entity_id: entity.entity_id },
-        true // Return response
+        { 
+          entity_id: entity.entity_id,
+          station_id: stationId
+        }
       ) as { modes?: unknown[] } | undefined;
 
       this._stationModes = response?.modes || [];
@@ -733,8 +730,11 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       await this.hass.callService(
         'pianobar',
         'set_station_mode',
-        { station_id: stationId, mode_id: modeId },
-        { entity_id: entity.entity_id }
+        { 
+          entity_id: entity.entity_id,
+          station_id: stationId,
+          mode_id: modeId
+        }
       );
       
       // Show success toast
@@ -783,8 +783,10 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       await this.hass.callService(
         'pianobar',
         'set_quick_mix',
-        { station_ids: stationIds },
-        { entity_id: entity.entity_id }
+        { 
+          entity_id: entity.entity_id,
+          station_ids: stationIds
+        }
       );
       
       // Show success toast
@@ -835,8 +837,11 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       await this.hass.callService(
         'pianobar',
         'rename_station',
-        { station_id: stationId, new_name: newName },
-        { entity_id: entity.entity_id }
+        { 
+          entity_id: entity.entity_id,
+          station_id: stationId,
+          name: newName
+        }
       );
       
       // Show success toast
@@ -887,8 +892,10 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       await this.hass.callService(
         'pianobar',
         'delete_station',
-        { station_id: stationId },
-        { entity_id: entity.entity_id }
+        { 
+          entity_id: entity.entity_id,
+          station_id: stationId
+        }
       );
       
       // Show success toast
@@ -936,9 +943,10 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       const response = await this.hass.callService(
         'pianobar',
         'get_station_info',
-        { station_id: stationId },
-        { entity_id: entity.entity_id },
-        true // Return response
+        { 
+          entity_id: entity.entity_id,
+          station_id: stationId
+        }
       ) as { artistSeeds?: any[]; songSeeds?: any[]; stationSeeds?: any[]; feedback?: any[] } | undefined;
 
       this._stationInfo = {
@@ -980,8 +988,12 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       await this.hass.callService(
         'pianobar',
         'delete_seed',
-        { seed_id: seedId, seed_type: seedType, station_id: stationId },
-        { entity_id: entity.entity_id }
+        { 
+          entity_id: entity.entity_id,
+          seed_id: seedId,
+          seed_type: seedType,
+          station_id: stationId
+        }
       );
       
       // Show success toast
@@ -1021,8 +1033,11 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       await this.hass.callService(
         'pianobar',
         'delete_feedback',
-        { feedback_id: feedbackId, station_id: stationId },
-        { entity_id: entity.entity_id }
+        { 
+          entity_id: entity.entity_id,
+          feedback_id: feedbackId,
+          station_id: stationId
+        }
       );
       
       // Show success toast
@@ -1078,9 +1093,10 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       const response = await this.hass.callService(
         'pianobar',
         'search',
-        { query },
-        { entity_id: entity.entity_id },
-        true // Return response
+        { 
+          entity_id: entity.entity_id,
+          query: query
+        }
       ) as { categories?: any[] } | undefined;
 
       this._searchResults = {
@@ -1113,8 +1129,11 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       await this.hass.callService(
         'pianobar',
         'add_seed',
-        { music_id: musicId, station_id: stationId },
-        { entity_id: entity.entity_id }
+        { 
+          entity_id: entity.entity_id,
+          music_id: musicId,
+          station_id: stationId
+        }
       );
       
       // Show success toast
@@ -1174,8 +1193,11 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       await this.hass.callService(
         'pianobar',
         'create_station',
-        { type: 'song', track_token: trackToken },
-        { entity_id: entity.entity_id }
+        { 
+          entity_id: entity.entity_id,
+          type: 'song',
+          track_token: trackToken
+        }
       );
       this.dispatchEvent(new CustomEvent('hass-notification', {
         detail: { message: 'Station created from current song', duration: 2000 },
@@ -1203,8 +1225,11 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       await this.hass.callService(
         'pianobar',
         'create_station',
-        { type: 'artist', track_token: trackToken },
-        { entity_id: entity.entity_id }
+        { 
+          entity_id: entity.entity_id,
+          type: 'artist',
+          track_token: trackToken
+        }
       );
       this.dispatchEvent(new CustomEvent('hass-notification', {
         detail: { message: 'Station created from current artist', duration: 2000 },
@@ -1232,9 +1257,10 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       const response = await this.hass.callService(
         'pianobar',
         'search',
-        { query },
-        { entity_id: entity.entity_id },
-        true
+        { 
+          entity_id: entity.entity_id,
+          query: query
+        }
       ) as { categories?: any[] } | undefined;
 
       this._searchResults = {
@@ -1263,9 +1289,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       const response = await this.hass.callService(
         'pianobar',
         'get_genres',
-        {},
-        { entity_id: entity.entity_id },
-        true
+        { entity_id: entity.entity_id }
       ) as { categories?: any[] } | undefined;
 
       this._genreCategories = response?.categories || [];
@@ -1292,8 +1316,10 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       await this.hass.callService(
         'pianobar',
         'create_station_from_music_id',
-        { music_id: musicId },
-        { entity_id: entity.entity_id }
+        { 
+          entity_id: entity.entity_id,
+          music_id: musicId
+        }
       );
       this.dispatchEvent(new CustomEvent('hass-notification', {
         detail: { message: 'Station created', duration: 2000 },
@@ -1320,8 +1346,10 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       await this.hass.callService(
         'pianobar',
         'add_shared_station',
-        { station_id: stationId },
-        { entity_id: entity.entity_id }
+        { 
+          entity_id: entity.entity_id,
+          station_id: stationId
+        }
       );
       this.dispatchEvent(new CustomEvent('hass-notification', {
         detail: { message: 'Shared station added', duration: 2000 },

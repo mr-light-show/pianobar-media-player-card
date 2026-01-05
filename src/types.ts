@@ -5,10 +5,9 @@ export interface HomeAssistant {
   callService: (
     domain: string,
     service: string,
-    data?: Record<string, unknown>,
-    target?: { entity_id: string | string[] },
-    returnResponse?: boolean
-  ) => Promise<unknown>;
+    serviceData?: Record<string, unknown>,
+    target?: Record<string, unknown>
+  ) => Promise<any>;
   connection: {
     subscribeEvents: (
       callback: (event: unknown) => void,
