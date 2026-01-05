@@ -342,7 +342,8 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const position = entity.attributes.media_position || 0;
     const positionUpdatedAt = entity.attributes.media_position_updated_at || '';
     const imageUrl = entity.attributes.entity_picture;
-    const hasArtwork = !!imageUrl;
+    const isTallArtwork = this._resolvedConfig?.artwork === 'tall';
+    const hasArtwork = !!imageUrl && !isTallArtwork; // Don't use extracted colors in tall mode
     const fgColor = this._extractedColors?.foreground || 'var(--pmc-primary-text-color)';
     const showTime = this._resolvedConfig?.showProgressTime ?? false;
 
@@ -367,7 +368,8 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const muted = volumeEntity.attributes.is_volume_muted ?? false;
     const unavailable = this._isUnavailable(volumeEntity);
     const entity = this._getEntity();
-    const hasArtwork = !!entity?.attributes.entity_picture;
+    const isTallArtwork = this._resolvedConfig?.artwork === 'tall';
+    const hasArtwork = !!entity?.attributes.entity_picture && !isTallArtwork; // Don't use extracted colors in tall mode
     const fgColor = this._extractedColors?.foreground || 'var(--pmc-primary-text-color)';
 
     return html`
@@ -406,6 +408,10 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
   private _renderSongActions(entity: HassEntity): TemplateResult | typeof nothing {
     if (!this._resolvedConfig?.showSongActions) return nothing;
+
+    // Hide if no current song is playing
+    const hasCurrentSong = !!entity.attributes.media_title;
+    if (!hasCurrentSong) return nothing;
 
     const supportsLove = this._supportsLove();
     const supportsBan = this._supportsBan();
