@@ -1631,57 +1631,6 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     this._tallArtworkError = true;
   }
 
-  private _renderTallMode(entity: HassEntity): TemplateResult {
-    const unavailable = this._isUnavailable(entity);
-    // Use same image source as main render - entity_picture is the thumbnail URL
-    const imageUrl = entity.attributes.entity_picture;
-    // Only consider valid if it's a non-empty string and hasn't errored
-    const hasArtwork = !!imageUrl && typeof imageUrl === 'string' && imageUrl.length > 0 && !this._tallArtworkError;
-    const showProgress = this._resolvedConfig?.showProgressBar;
-
-    return html`
-      ${this._renderOverflowMenu(entity)}
-
-      ${hasArtwork
-        ? html`
-            <div class="artwork-container">
-              <img 
-                class="artwork-image" 
-                src="${imageUrl}" 
-                alt=""
-                @error=${this._handleTallArtworkError}
-              />
-            </div>
-          `
-        : html`
-            <div class="artwork-placeholder-tall">
-              <ha-icon icon="mdi:music"></ha-icon>
-            </div>
-          `}
-
-      <div class="card-content ${unavailable ? 'unavailable' : ''}">
-        ${this._renderMediaInfo(entity)}
-      </div>
-
-      ${showProgress ? this._renderProgressBar(entity) : nothing}
-
-      ${this._resolvedConfig?.showPlaybackControls ||
-      this._resolvedConfig?.showVolumeControl ||
-      this._resolvedConfig?.showSongActions
-        ? html`
-            <div class="controls-section">
-              ${this._renderVolumeControl()}
-              <div class="controls-row">
-                ${this._renderSongActions(entity)}
-                ${this._renderPlaybackControls(entity)}
-              </div>
-              ${this._renderStationPill(entity)}
-            </div>
-          `
-        : nothing}
-    `;
-  }
-
   render(): TemplateResult {
     if (!this._config || !this.hass) {
       return html``;
@@ -1703,7 +1652,10 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const unavailable = this._isUnavailable(entity);
     const isFullCover = this._resolvedConfig?.artwork === 'full-cover';
     const imageUrl = entity.attributes.entity_picture;
-    const hasArtwork = !!imageUrl;
+    // Tall mode needs special hasArtwork check for error handling
+    const hasArtwork = isTallArtwork 
+      ? (!!imageUrl && typeof imageUrl === 'string' && imageUrl.length > 0 && !this._tallArtworkError)
+      : !!imageUrl;
 
     // Get extracted colors or fallbacks
     const bgColor = this._extractedColors?.background || 'var(--pmc-card-background)';
@@ -1741,66 +1693,91 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       !reserveDetailsSpace ? 'no-reserve' : '',
     ].filter(Boolean).join(' ');
 
-    // Use tall artwork layout
-    if (isTallArtwork) {
-      return html`
-        <ha-card class="${cardClasses}">
-          ${this._renderTallMode(entity)}
-          ${this._renderStationPopup(entity)}
-          ${this._renderRatingsPopup(entity)}
-          ${this._renderUpcomingPopup()}
-          ${this._renderStationModePopup(entity)}
-          ${this._renderQuickMixPopup(entity)}
-          ${this._renderRenameDialog(entity)}
-          ${this._renderDeleteDialog(entity)}
-          ${this._renderStationInfoPopup(entity)}
-          ${this._renderAddMusicPopup(entity)}
-          ${this._renderCreateStationModal(entity)}
-        </ha-card>
-      `;
-    }
-
     return html`
-      <ha-card style=${cardStyle} class="${cardClasses}">
-        ${hasArtwork && !isFullCover
+      <ha-card 
+        style=${isTallArtwork ? nothing : cardStyle} 
+        class="${cardClasses}"
+      >
+        ${this._renderOverflowMenu(entity)}
+
+        ${isTallArtwork
+          ? html`
+              ${hasArtwork
+                ? html`
+                    <div class="artwork-container">
+                      <img 
+                        class="artwork-image" 
+                        src="${imageUrl}" 
+                        alt=""
+                        @error=${this._handleTallArtworkError}
+                      />
+                    </div>
+                  `
+                : html`
+                    <div class="artwork-placeholder-tall">
+                      <ha-icon icon="mdi:music"></ha-icon>
+                    </div>
+                  `
+              }
+            `
+          : nothing
+        }
+        
+        ${!isTallArtwork && hasArtwork && !isFullCover
           ? html`
               <div class="artwork-container">
                 <img class="artwork-image" src="${imageUrl}" alt="" />
               </div>
               <div class="artwork-gradient" style=${gradientStyle}></div>
             `
-          : nothing}
+          : nothing
+        }
         
-        ${isFullCover && imageUrl
+        ${!isTallArtwork && isFullCover && imageUrl
           ? html`
               <div class="fullcover-background" style="background-image: url('${imageUrl}')"></div>
               <div class="fullcover-overlay"></div>
             `
-          : nothing}
+          : nothing
+        }
 
-        <div class="card-content ${unavailable ? 'unavailable' : ''}" style="color: ${hasArtwork ? metadataColor : 'inherit'}">
+        <div class="card-content ${unavailable ? 'unavailable' : ''}" 
+             style="color: ${hasArtwork && !isTallArtwork ? metadataColor : 'inherit'}">
           ${this._renderMediaInfo(entity)}
-          ${this._renderOverflowMenu(entity)}
         </div>
 
-        ${this._resolvedConfig?.showPlaybackControls ||
-        this._resolvedConfig?.showVolumeControl ||
-        this._resolvedConfig?.showSongActions ||
-        this._resolvedConfig?.stationDisplay === 'compact'
-          ? html`
-              <div class="controls-section" style="color: ${hasArtwork ? controlsColor : 'inherit'}">
-                <div class="controls-row">
-                  ${this._renderPlaybackControls(entity)}
-                  <div class="controls-spacer"></div>
-                  ${this._renderSongActions(entity)}
-                  ${this._renderStationSelector(entity)}
-                </div>
-                ${this._renderVolumeControl()}
-              </div>
-            `
-          : nothing}
-
         ${showProgress ? this._renderProgressBar(entity) : nothing}
+
+        ${this._resolvedConfig?.showPlaybackControls ||
+          this._resolvedConfig?.showVolumeControl ||
+          this._resolvedConfig?.showSongActions ||
+          this._resolvedConfig?.stationDisplay === 'compact'
+            ? html`
+                <div class="controls-section" 
+                     style="color: ${hasArtwork && !isTallArtwork ? controlsColor : 'inherit'}">
+                  ${isTallArtwork
+                    ? html`
+                        ${this._renderVolumeControl()}
+                        <div class="controls-row">
+                          ${this._renderSongActions(entity)}
+                          ${this._renderPlaybackControls(entity)}
+                        </div>
+                        ${this._renderStationPill(entity)}
+                      `
+                    : html`
+                        <div class="controls-row">
+                          ${this._renderPlaybackControls(entity)}
+                          <div class="controls-spacer"></div>
+                          ${this._renderSongActions(entity)}
+                          ${this._renderStationSelector(entity)}
+                        </div>
+                        ${this._renderVolumeControl()}
+                      `
+                  }
+                </div>
+              `
+            : nothing
+        }
 
         ${this._renderStationPopup(entity)}
         ${this._renderRatingsPopup(entity)}
