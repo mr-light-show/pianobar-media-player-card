@@ -237,6 +237,7 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
       if (newMode !== 'custom') {
         // Switching to preset mode: clear all preset-controllable fields
         const newConfig = {
+          type: this._config.type,
           entity: this._config.entity,
           mode: newMode,
           // Only keep volume_entity and name
