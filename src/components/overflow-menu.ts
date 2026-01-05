@@ -6,6 +6,7 @@ export class OverflowMenu extends LitElement {
   @property({ type: String }) entityId = '';
   @property({ type: Boolean }) showStationOption = false;
   @property({ type: Boolean }) showRatingsOption = false;
+  @property({ type: Boolean }) isOn = true;
   @property({ type: Boolean }) disabled = false;
   @property({ type: String }) buildTime = '';
 
@@ -163,7 +164,7 @@ export class OverflowMenu extends LitElement {
   private _updateMenuPosition() {
     const rect = this.getBoundingClientRect();
     // Calculate menu height based on options shown
-    let itemCount = 1; // More Information is always shown
+    let itemCount = 2; // More Information and Connect/Disconnect are always shown
     if (this.showStationOption) itemCount++;
     if (this.showRatingsOption) itemCount++;
     const menuHeight = itemCount * 44 + (this.buildTime ? 40 : 0); // Approximate height per item + build time
@@ -212,9 +213,6 @@ export class OverflowMenu extends LitElement {
   }
 
   private _handleSelectStation(e: Event) {
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/a213f1a5-ba68-4401-8c19-117da891eafe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'overflow-menu.ts:_handleSelectStation',message:'Select station clicked',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A2'})}).catch(()=>{});
-    // #endregion
     const target = e.currentTarget as Element;
     this.dispatchEvent(
       new CustomEvent('select-station', {
@@ -312,6 +310,10 @@ export class OverflowMenu extends LitElement {
         <ha-icon icon="mdi:information-outline"></ha-icon>
         <span>More Information</span>
       </button>
+      <button class="menu-item" data-action="power-toggle">
+        <ha-icon icon="mdi:power"></ha-icon>
+        <span>${this.isOn ? 'Disconnect' : 'Connect'}</span>
+      </button>
     `;
 
     if (this.showStationOption) {
@@ -357,6 +359,8 @@ export class OverflowMenu extends LitElement {
         const action = (item as HTMLElement).dataset.action;
         if (action === 'more-info') {
           this.dispatchEvent(new CustomEvent('more-info', { bubbles: true, composed: true, detail: { entityId: this.entityId } }));
+        } else if (action === 'power-toggle') {
+          this.dispatchEvent(new CustomEvent('power-toggle', { bubbles: true, composed: true }));
         } else if (action === 'select-station') {
           const rect = (item as Element).getBoundingClientRect();
           this.dispatchEvent(new CustomEvent('select-station', { bubbles: true, composed: true, detail: { anchorPosition: { left: rect.left, top: rect.top, bottom: rect.bottom, right: rect.right } } }));

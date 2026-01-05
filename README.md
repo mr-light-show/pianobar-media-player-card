@@ -1,6 +1,6 @@
 # Pianobar Media Player Card
 
-A custom Home Assistant Lovelace card for the [pianobar-ha](https://github.com/khawes/pianobar-ha) pandora media player integration with beautiful album artwork integration.
+A custom Home Assistant Lovelace card for the [pianobar-ha](https://github.com/khawes/pianobar-ha) media player integration with pandora station management support.
 
 ## Screenshots
 

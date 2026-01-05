@@ -346,6 +346,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const hasArtwork = !!imageUrl && !isTallArtwork; // Don't use extracted colors in tall mode
     const fgColor = this._extractedColors?.foreground || 'var(--pmc-primary-text-color)';
     const showTime = this._resolvedConfig?.showProgressTime ?? false;
+    const isPlaying = this._isPlaying(entity);
 
     return html`
       <pmc-progress-bar
@@ -353,6 +354,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         .position=${position}
         .positionUpdatedAt=${positionUpdatedAt}
         .showTime=${showTime}
+        .isPlaying=${isPlaying}
         style="color: ${hasArtwork ? fgColor : 'inherit'}"
       ></pmc-progress-bar>
     `;
@@ -473,6 +475,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const stations = (entity.attributes.stations as Station[]) || [];
     const hasStations = stations.length > 0;
     const hasRatings = this._supportsAnyRating(entity);
+    const isOn = entity.state !== 'off' && entity.state !== 'unavailable';
 
     return html`
       <pmc-overflow-menu
@@ -480,9 +483,11 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         .entityId=${entity.entity_id}
         .showStationOption=${hasStations}
         .showRatingsOption=${hasRatings}
+        .isOn=${isOn}
         .disabled=${this._isUnavailable(entity)}
         .buildTime=${__BUILD_TIMESTAMP__}
         @more-info=${this._handleMoreInfo}
+        @power-toggle=${this._handlePowerToggle}
         @select-station=${this._handleOpenStationPopup}
         @select-ratings=${this._handleOpenRatingsPopup}
       ></pmc-overflow-menu>

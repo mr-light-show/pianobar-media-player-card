@@ -7,6 +7,7 @@ export class ProgressBar extends LitElement {
   @property({ type: Number }) position = 0;
   @property({ type: String }) positionUpdatedAt = '';
   @property({ type: Boolean }) showTime = false;
+  @property({ type: Boolean }) isPlaying = false;
 
   private _animationFrameId: number | null = null;
   private _currentPosition = 0;
@@ -89,10 +90,16 @@ export class ProgressBar extends LitElement {
   private _startAnimation() {
     const animate = () => {
       if (this.duration > 0 && this.positionUpdatedAt) {
-        const updatedAt = new Date(this.positionUpdatedAt).getTime();
-        const now = Date.now();
-        const elapsed = (now - updatedAt) / 1000;
-        this._currentPosition = Math.min(this.position + elapsed, this.duration);
+        if (this.isPlaying) {
+          // Only advance based on elapsed time when playing
+          const updatedAt = new Date(this.positionUpdatedAt).getTime();
+          const now = Date.now();
+          const elapsed = (now - updatedAt) / 1000;
+          this._currentPosition = Math.min(this.position + elapsed, this.duration);
+        } else {
+          // When paused, use the static position
+          this._currentPosition = this.position;
+        }
         this.requestUpdate();
       }
       this._animationFrameId = requestAnimationFrame(animate);
