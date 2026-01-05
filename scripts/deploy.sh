@@ -15,7 +15,7 @@
 
 HA_HOST="${HA_HOST:-homeassistant.local}"  # HA hostname or IP (env var or default)
 HA_USER="${HA_USER:-$USER}"                 # SSH user (defaults to current user)
-HA_WWW_PATH="${HA_WWW_PATH:-/config/www}"   # www directory on HA server
+HA_WWW_PATH="${HA_WWW_PATH:-/config/www/community/pianobar-media-player-card}"   # www directory on HA server
 HA_PORT="${HA_PORT:-8123}"                  # HA web port for API calls
 CARD_NAME="pianobar-media-player-card"
 
@@ -74,7 +74,7 @@ get_resource_id() {
 
 # Function to update Lovelace resource URL via WebSocket (instant, no restart needed)
 update_lovelace_resource() {
-    local new_url="/local/${CARD_NAME}.js?v=${VERSION}"
+    local new_url="/hacsfiles/${CARD_NAME}/${CARD_NAME}.js?v=${VERSION}"
     
     if [ -z "$HA_TOKEN" ]; then
         return 1  # No token
@@ -163,7 +163,7 @@ if update_lovelace_resource; then
     echo -e "  New resource URL:"
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
-    echo -e "  ${GREEN}/local/${CARD_NAME}.js?v=${VERSION}${NC}"
+    echo -e "  ${GREEN}/hacsfiles/${CARD_NAME}/${CARD_NAME}.js?v=${VERSION}${NC}"
     echo ""
     echo -e "${GREEN}Just refresh your browser to see changes!${NC}"
 else
@@ -173,7 +173,7 @@ else
     echo -e "  Resource URL:"
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
-    echo -e "  ${GREEN}/local/${CARD_NAME}.js?v=${VERSION}${NC}"
+    echo -e "  ${GREEN}/hacsfiles/${CARD_NAME}/${CARD_NAME}.js?v=${VERSION}${NC}"
     echo ""
     
     case $UPDATE_RESULT in
@@ -193,7 +193,7 @@ else
             echo ""
             echo "Add to Lovelace resources (Settings → Dashboards → ⋮ → Resources):"
             echo ""
-            echo "  URL:  /local/${CARD_NAME}.js?v=${VERSION}"
+            echo "  URL:  /hacsfiles/${CARD_NAME}/${CARD_NAME}.js?v=${VERSION}"
             echo "  Type: JavaScript Module"
             ;;
         *)
