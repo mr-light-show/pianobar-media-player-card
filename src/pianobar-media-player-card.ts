@@ -24,6 +24,7 @@ import './components/upcoming-songs-popup';
 import './components/station-mode-popup';
 import './components/quickmix-popup';
 import './components/rename-dialog';
+import './components/delete-dialog';
 import './pianobar-card-editor';
 
 // Card registration info
@@ -66,6 +67,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   @state() private _stationModesLoading = false;
   @state() private _openQuickMixPopup = false;
   @state() private _openRenameDialog = false;
+  @state() private _openDeleteDialog = false;
 
   private _resizeObserver?: ResizeObserver;
 
@@ -507,6 +509,8 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const showQuickMix = isOn && hasStations;
     // Show Rename option if player is on and we have renameable stations
     const showRename = isOn && hasStations;
+    // Show Delete option if player is on and we have deleteable stations
+    const showDelete = isOn && hasStations;
 
     return html`
       <pmc-overflow-menu
@@ -519,6 +523,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         .showStationModeOption=${showStationMode}
         .showQuickMixOption=${showQuickMix}
         .showRenameOption=${showRename}
+        .showDeleteOption=${showDelete}
         .isOn=${isOn}
         .disabled=${this._isUnavailable(entity)}
         .buildTime=${__BUILD_TIMESTAMP__}
@@ -531,6 +536,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         @station-mode=${this._handleStationMode}
         @quickmix=${this._handleQuickMix}
         @rename-station=${this._handleRenameStation}
+        @delete-station=${this._handleDeleteStation}
       ></pmc-overflow-menu>
     `;
   }
@@ -833,6 +839,58 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     }
   }
 
+  // Delete handlers
+  private _handleDeleteStation(e: CustomEvent): void {
+    this._popupAnchorPosition = e.detail?.anchorPosition;
+    this._openDeleteDialog = true;
+  }
+
+  private _handleDeleteDialogClosed(): void {
+    this._openDeleteDialog = false;
+    this._popupAnchorPosition = undefined;
+  }
+
+  private async _handleDeleteStationSubmit(e: CustomEvent): Promise<void> {
+    const entity = this._getEntity();
+    if (!entity || !this.hass) return;
+
+    const { stationId, stationName } = e.detail;
+    
+    try {
+      await this.hass.callService(
+        'pianobar',
+        'delete_station',
+        { station_id: stationId },
+        { entity_id: entity.entity_id }
+      );
+      
+      // Show success toast
+      const event = new CustomEvent('hass-notification', {
+        detail: {
+          message: `Station "${stationName}" deleted`,
+          duration: 2000,
+        },
+        bubbles: true,
+        composed: true,
+      });
+      this.dispatchEvent(event);
+      
+      // Close the dialog
+      this._handleDeleteDialogClosed();
+    } catch (err) {
+      console.error('Error deleting station:', err);
+      const errorEvent = new CustomEvent('hass-notification', {
+        detail: {
+          message: 'Error deleting station',
+          duration: 3000,
+        },
+        bubbles: true,
+        composed: true,
+      });
+      this.dispatchEvent(errorEvent);
+    }
+  }
+
   private _renderStationPopup(entity: HassEntity): TemplateResult | typeof nothing {
     const stationDisplay = this._resolvedConfig?.stationDisplay ?? 'hidden';
     // Render popup-only selector for normal mode OR when explicitly opened (e.g., from overflow menu)
@@ -971,6 +1029,24 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     `;
   }
 
+  private _renderDeleteDialog(entity: HassEntity): TemplateResult | typeof nothing {
+    if (!this._openDeleteDialog) return nothing;
+
+    const stations = (entity.attributes.stations as Station[]) || [];
+    const unavailable = this._isUnavailable(entity);
+
+    return html`
+      <pmc-delete-dialog
+        .stations=${stations}
+        .disabled=${unavailable}
+        .externalOpen=${this._openDeleteDialog}
+        .anchorPosition=${this._popupAnchorPosition}
+        @delete-station=${this._handleDeleteStationSubmit}
+        @dialog-closed=${this._handleDeleteDialogClosed}
+      ></pmc-delete-dialog>
+    `;
+  }
+
   private _renderStationPill(entity: HassEntity): TemplateResult | typeof nothing {
     const stationDisplay = this._resolvedConfig?.stationDisplay ?? 'hidden';
     if (stationDisplay === 'hidden') return nothing;
@@ -1056,6 +1132,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       ${this._renderStationModePopup(entity)}
       ${this._renderQuickMixPopup(entity)}
       ${this._renderRenameDialog(entity)}
+      ${this._renderDeleteDialog(entity)}
     `;
   }
 
@@ -1175,6 +1252,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         ${this._renderStationModePopup(entity)}
         ${this._renderQuickMixPopup(entity)}
         ${this._renderRenameDialog(entity)}
+        ${this._renderDeleteDialog(entity)}
       </ha-card>
     `;
   }

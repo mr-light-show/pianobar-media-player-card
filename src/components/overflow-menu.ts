@@ -11,6 +11,7 @@ export class OverflowMenu extends LitElement {
   @property({ type: Boolean }) showStationModeOption = false;
   @property({ type: Boolean }) showQuickMixOption = false;
   @property({ type: Boolean }) showRenameOption = false;
+  @property({ type: Boolean }) showDeleteOption = false;
   @property({ type: Boolean }) isOn = true;
   @property({ type: Boolean }) disabled = false;
   @property({ type: String }) buildTime = '';
@@ -92,6 +93,14 @@ export class OverflowMenu extends LitElement {
 
     .menu-item:hover {
       background: var(--pmc-secondary-background);
+    }
+
+    .menu-item.destructive {
+      color: #f44336;
+    }
+
+    .menu-item.destructive:hover {
+      background: rgba(244, 67, 54, 0.1);
     }
 
     .menu-item ha-icon {
@@ -177,6 +186,7 @@ export class OverflowMenu extends LitElement {
     if (this.showStationModeOption) itemCount++;
     if (this.showQuickMixOption) itemCount++;
     if (this.showRenameOption) itemCount++;
+    if (this.showDeleteOption) itemCount++;
     const menuHeight = itemCount * 44 + (this.buildTime ? 40 : 0); // Approximate height per item + build time
     const menuWidth = 180;
     const padding = 8;
@@ -376,7 +386,7 @@ export class OverflowMenu extends LitElement {
     }
     
     // Divider before station management actions
-    if (this.showQuickMixOption || this.showRenameOption) {
+    if (this.showQuickMixOption || this.showRenameOption || this.showDeleteOption) {
       menuItems += `<div style="height: 1px; background: var(--divider-color, rgba(0, 0, 0, 0.1)); margin: 4px 0;"></div>`;
     }
     
@@ -390,8 +400,17 @@ export class OverflowMenu extends LitElement {
       `;
     }
     
+    if (this.showDeleteOption) {
+      menuItems += `
+        <button class="menu-item destructive" data-action="delete-station">
+          <ha-icon icon="mdi:delete"></ha-icon>
+          <span>Delete Station</span>
+        </button>
+      `;
+    }
+    
     // Divider before system actions
-    if (this.showStationOption || this.showRenameOption) {
+    if (this.showStationOption || this.showRenameOption || this.showDeleteOption) {
       menuItems += `<div style="height: 1px; background: var(--divider-color, rgba(0, 0, 0, 0.1)); margin: 4px 0;"></div>`;
     }
     
@@ -463,6 +482,9 @@ export class OverflowMenu extends LitElement {
         } else if (action === 'rename-station') {
           const rect = (item as Element).getBoundingClientRect();
           this.dispatchEvent(new CustomEvent('rename-station', { bubbles: true, composed: true, detail: { anchorPosition: { left: rect.left, top: rect.top, bottom: rect.bottom, right: rect.right } } }));
+        } else if (action === 'delete-station') {
+          const rect = (item as Element).getBoundingClientRect();
+          this.dispatchEvent(new CustomEvent('delete-station', { bubbles: true, composed: true, detail: { anchorPosition: { left: rect.left, top: rect.top, bottom: rect.bottom, right: rect.right } } }));
         }
         this._menuOpen = false;
         this._updatePortalContent();
