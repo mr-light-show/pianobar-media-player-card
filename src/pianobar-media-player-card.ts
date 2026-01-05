@@ -579,6 +579,10 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const entity = this._getEntity();
     if (!entity || !this.hass) return;
 
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/a213f1a5-ba68-4401-8c19-117da891eafe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'pianobar-media-player-card.ts:_handleExplainSong:entry',message:'Starting explain song',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
+
     try {
       // Call the service using WebSocket API to get response data
       const response = await this.hass.connection.sendMessagePromise({
@@ -589,7 +593,15 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         return_response: true,
       }) as any;
 
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/a213f1a5-ba68-4401-8c19-117da891eafe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'pianobar-media-player-card.ts:_handleExplainSong:got_response',message:'Received response',data:{response:JSON.stringify(response),has_response_key:!!response?.response,explanation:response?.response?.explanation},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
+
       const explanation = response?.response?.explanation || 'No explanation available';
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/a213f1a5-ba68-4401-8c19-117da891eafe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'pianobar-media-player-card.ts:_handleExplainSong:pre_toast',message:'About to show toast',data:{explanation:explanation,explanation_length:explanation.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       
       // Show toast notification using Home Assistant's notification system
       const event = new CustomEvent('hass-notification', {
@@ -601,7 +613,14 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         composed: true,
       });
       this.dispatchEvent(event);
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/a213f1a5-ba68-4401-8c19-117da891eafe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'pianobar-media-player-card.ts:_handleExplainSong:toast_dispatched',message:'Toast event dispatched',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
     } catch (err) {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/a213f1a5-ba68-4401-8c19-117da891eafe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'pianobar-media-player-card.ts:_handleExplainSong:error',message:'Error caught',data:{error:String(err),error_json:JSON.stringify(err),error_keys:err ? Object.keys(err) : [],error_message:err instanceof Error ? err.message : (err && typeof err === 'object' ? JSON.stringify(err) : String(err)),error_stack:err instanceof Error ? err.stack : 'no stack'},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       console.error('Error explaining song:', err);
       // Show error toast
       const event = new CustomEvent('hass-notification', {
