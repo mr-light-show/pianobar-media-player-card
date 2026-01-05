@@ -13,6 +13,7 @@ export interface HomeAssistant {
       callback: (event: unknown) => void,
       eventType: string
     ) => Promise<() => void>;
+    sendMessagePromise: (message: Record<string, unknown>) => Promise<any>;
   };
   language: string;
   config: {

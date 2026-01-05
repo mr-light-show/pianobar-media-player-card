@@ -580,14 +580,16 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     if (!entity || !this.hass) return;
 
     try {
-      // Call the service with return_response flag
-      const response = await this.hass.callService(
-        'pianobar',
-        'explain_song',
-        { entity_id: entity.entity_id }
-      ) as { explanation?: string } | undefined;
+      // Call the service using WebSocket API to get response data
+      const response = await this.hass.connection.sendMessagePromise({
+        type: 'call_service',
+        domain: 'pianobar',
+        service: 'explain_song',
+        service_data: {},
+        return_response: true,
+      }) as any;
 
-      const explanation = response?.explanation || 'No explanation available';
+      const explanation = response?.response?.explanation || 'No explanation available';
       
       // Show toast notification using Home Assistant's notification system
       const event = new CustomEvent('hass-notification', {
@@ -641,14 +643,16 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     this._popupAnchorPosition = e.detail?.anchorPosition;
     
     try {
-      // Call the service to get upcoming songs
-      const response = await this.hass.callService(
-        'pianobar',
-        'get_upcoming',
-        { entity_id: entity.entity_id }
-      ) as { songs?: unknown[] } | undefined;
+      // Call the service to get upcoming songs using WebSocket API
+      const response = await this.hass.connection.sendMessagePromise({
+        type: 'call_service',
+        domain: 'pianobar',
+        service: 'get_upcoming',
+        service_data: {},
+        return_response: true,
+      }) as any;
 
-      this._upcomingSongs = response?.songs || [];
+      this._upcomingSongs = response?.response?.songs || [];
       this._upcomingPopupOpen = true;
     } catch (err) {
       console.error('Error getting upcoming songs:', err);
@@ -685,17 +689,18 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         throw new Error('No station selected');
       }
 
-      // Call the service to get station modes
-      const response = await this.hass.callService(
-        'pianobar',
-        'get_station_modes',
-        { 
-          entity_id: entity.entity_id,
+      // Call the service to get station modes using WebSocket API
+      const response = await this.hass.connection.sendMessagePromise({
+        type: 'call_service',
+        domain: 'pianobar',
+        service: 'get_station_modes',
+        service_data: { 
           station_id: stationId
-        }
-      ) as { modes?: unknown[] } | undefined;
+        },
+        return_response: true,
+      }) as any;
 
-      this._stationModes = response?.modes || [];
+      this._stationModes = response?.response?.modes || [];
     } catch (err) {
       console.error('Error getting station modes:', err);
       // Show error toast
@@ -940,20 +945,21 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         throw new Error('No station selected');
       }
 
-      const response = await this.hass.callService(
-        'pianobar',
-        'get_station_info',
-        { 
-          entity_id: entity.entity_id,
+      const response = await this.hass.connection.sendMessagePromise({
+        type: 'call_service',
+        domain: 'pianobar',
+        service: 'get_station_info',
+        service_data: { 
           station_id: stationId
-        }
-      ) as { artistSeeds?: any[]; songSeeds?: any[]; stationSeeds?: any[]; feedback?: any[] } | undefined;
+        },
+        return_response: true,
+      }) as any;
 
       this._stationInfo = {
-        artistSeeds: response?.artistSeeds || [],
-        songSeeds: response?.songSeeds || [],
-        stationSeeds: response?.stationSeeds || [],
-        feedback: response?.feedback || []
+        artistSeeds: response?.response?.artistSeeds || [],
+        songSeeds: response?.response?.songSeeds || [],
+        stationSeeds: response?.response?.stationSeeds || [],
+        feedback: response?.response?.feedback || []
       };
     } catch (err) {
       console.error('Error fetching station info:', err);
