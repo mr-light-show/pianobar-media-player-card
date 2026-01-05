@@ -230,7 +230,26 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
     const detail = ev.detail as { value: Record<string, unknown> };
     if (!detail.value) return;
 
-    // Update each changed value
+    // Check if mode is being changed
+    if ('mode' in detail.value && this._config) {
+      const newMode = detail.value.mode as string;
+      
+      if (newMode !== 'custom') {
+        // Switching to preset mode: clear all preset-controllable fields
+        const newConfig = {
+          entity: this._config.entity,
+          mode: newMode,
+          // Only keep volume_entity and name
+          ...(this._config.volume_entity && { volume_entity: this._config.volume_entity }),
+          ...(this._config.name && { name: this._config.name }),
+        };
+        this._config = newConfig as PianobarCardConfig;
+        this._fireConfigChanged();
+        return;
+      }
+    }
+
+    // For other changes (or switching to custom mode), update normally
     Object.entries(detail.value).forEach(([key, value]) => {
       this._updateConfig(key, value);
     });
@@ -327,13 +346,17 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
     // Get the resolved values (from preset or custom)
     const currentMode = this._config?.mode || 'default';
     const preset = getModePreset(currentMode);
+    const isCustomMode = currentMode === 'custom';
     
     const dataWithResolvedValues = {
       ...this._config,
-      artwork: this._config?.artwork ?? preset.artwork,
+      // Always show the effective value (from preset for preset modes)
+      artwork: isCustomMode ? (this._config?.artwork ?? preset.artwork) : preset.artwork,
     };
 
-    const stationDisplay = this._config?.stationDisplay ?? preset.stationDisplay;
+    const stationDisplay = isCustomMode 
+      ? (this._config?.stationDisplay ?? preset.stationDisplay)
+      : preset.stationDisplay;
     const supportsStations = this._supportsStations();
 
     return html`
@@ -404,18 +427,44 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
     // Get the resolved values (from preset or custom)
     const currentMode = this._config?.mode || 'default';
     const preset = getModePreset(currentMode);
+    
+    // For preset modes, ONLY show preset values
+    // For custom mode, show config values with preset fallback
+    const isCustomMode = currentMode === 'custom';
 
-    const showPlaybackControls = this._config?.showPlaybackControls ?? preset.showPlaybackControls;
-    const showPowerButton = this._config?.showPowerButton ?? preset.showPowerButton;
-    const showSongActions = this._config?.showSongActions ?? preset.showSongActions;
-    const showProgressBar = this._config?.showProgressBar ?? preset.showProgressBar;
-    const showProgressTime = this._config?.showProgressTime ?? preset.showProgressTime;
-    const showVolumeControl = this._config?.showVolumeControl ?? preset.showVolumeControl;
-    const showDetails = this._config?.showDetails ?? preset.showDetails;
-    const showTitle = this._config?.showTitle ?? preset.showTitle;
-    const showArtist = this._config?.showArtist ?? preset.showArtist;
-    const showAlbum = this._config?.showAlbum ?? preset.showAlbum;
-    const reserveDetailsSpace = this._config?.reserveDetailsSpace ?? preset.reserveDetailsSpace;
+    const showPlaybackControls = isCustomMode 
+      ? (this._config?.showPlaybackControls ?? preset.showPlaybackControls)
+      : preset.showPlaybackControls;
+    const showPowerButton = isCustomMode
+      ? (this._config?.showPowerButton ?? preset.showPowerButton)
+      : preset.showPowerButton;
+    const showSongActions = isCustomMode
+      ? (this._config?.showSongActions ?? preset.showSongActions)
+      : preset.showSongActions;
+    const showProgressBar = isCustomMode
+      ? (this._config?.showProgressBar ?? preset.showProgressBar)
+      : preset.showProgressBar;
+    const showProgressTime = isCustomMode
+      ? (this._config?.showProgressTime ?? preset.showProgressTime)
+      : preset.showProgressTime;
+    const showVolumeControl = isCustomMode
+      ? (this._config?.showVolumeControl ?? preset.showVolumeControl)
+      : preset.showVolumeControl;
+    const showDetails = isCustomMode
+      ? (this._config?.showDetails ?? preset.showDetails)
+      : preset.showDetails;
+    const showTitle = isCustomMode
+      ? (this._config?.showTitle ?? preset.showTitle)
+      : preset.showTitle;
+    const showArtist = isCustomMode
+      ? (this._config?.showArtist ?? preset.showArtist)
+      : preset.showArtist;
+    const showAlbum = isCustomMode
+      ? (this._config?.showAlbum ?? preset.showAlbum)
+      : preset.showAlbum;
+    const reserveDetailsSpace = isCustomMode
+      ? (this._config?.reserveDetailsSpace ?? preset.reserveDetailsSpace)
+      : preset.reserveDetailsSpace;
 
     // Check if rating actions are supported
     const supportsRating = this._supportsAnyRating();
