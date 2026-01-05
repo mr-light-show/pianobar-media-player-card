@@ -1679,19 +1679,6 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
             </div>
           `
         : nothing}
-
-      ${this._renderStationPopup(entity)}
-      ${this._renderRatingsPopup(entity)}
-      ${this._renderUpcomingPopup()}
-      ${this._renderStationModePopup(entity)}
-      ${this._renderUpcomingPopup()}
-      ${this._renderStationModePopup(entity)}
-      ${this._renderQuickMixPopup(entity)}
-      ${this._renderRenameDialog(entity)}
-      ${this._renderDeleteDialog(entity)}
-      ${this._renderStationInfoPopup(entity)}
-      ${this._renderAddMusicPopup(entity)}
-      ${this._renderCreateStationModal(entity)}
     `;
   }
 
@@ -1807,8 +1794,6 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
         ${this._renderStationPopup(entity)}
         ${this._renderRatingsPopup(entity)}
-        ${this._renderUpcomingPopup()}
-        ${this._renderStationModePopup(entity)}
         ${this._renderUpcomingPopup()}
         ${this._renderStationModePopup(entity)}
         ${this._renderQuickMixPopup(entity)}
