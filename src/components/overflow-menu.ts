@@ -8,6 +8,7 @@ export class OverflowMenu extends LitElement {
   @property({ type: Boolean }) showRatingsOption = false;
   @property({ type: Boolean }) showExplainOption = false;
   @property({ type: Boolean }) showUpcomingOption = false;
+  @property({ type: Boolean }) showStationModeOption = false;
   @property({ type: Boolean }) isOn = true;
   @property({ type: Boolean }) disabled = false;
   @property({ type: String }) buildTime = '';
@@ -171,6 +172,7 @@ export class OverflowMenu extends LitElement {
     if (this.showRatingsOption) itemCount++;
     if (this.showExplainOption) itemCount++;
     if (this.showUpcomingOption) itemCount++;
+    if (this.showStationModeOption) itemCount++;
     const menuHeight = itemCount * 44 + (this.buildTime ? 40 : 0); // Approximate height per item + build time
     const menuWidth = 180;
     const padding = 8;
@@ -344,6 +346,21 @@ export class OverflowMenu extends LitElement {
       menuItems += `<div style="height: 1px; background: var(--divider-color, rgba(0, 0, 0, 0.1)); margin: 4px 0;"></div>`;
     }
     
+    // Station actions section
+    if (this.showStationModeOption) {
+      menuItems += `
+        <button class="menu-item" data-action="station-mode">
+          <ha-icon icon="mdi:tune-variant"></ha-icon>
+          <span>Station Mode</span>
+        </button>
+      `;
+    }
+    
+    // Divider after station actions if they exist
+    if (this.showStationModeOption) {
+      menuItems += `<div style="height: 1px; background: var(--divider-color, rgba(0, 0, 0, 0.1)); margin: 4px 0;"></div>`;
+    }
+    
     // Station/System actions
     if (this.showStationOption) {
       menuItems += `
@@ -403,6 +420,9 @@ export class OverflowMenu extends LitElement {
         } else if (action === 'show-upcoming') {
           const rect = (item as Element).getBoundingClientRect();
           this.dispatchEvent(new CustomEvent('show-upcoming', { bubbles: true, composed: true, detail: { anchorPosition: { left: rect.left, top: rect.top, bottom: rect.bottom, right: rect.right } } }));
+        } else if (action === 'station-mode') {
+          const rect = (item as Element).getBoundingClientRect();
+          this.dispatchEvent(new CustomEvent('station-mode', { bubbles: true, composed: true, detail: { anchorPosition: { left: rect.left, top: rect.top, bottom: rect.bottom, right: rect.right } } }));
         }
         this._menuOpen = false;
         this._updatePortalContent();

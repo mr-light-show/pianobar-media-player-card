@@ -21,6 +21,7 @@ import './components/song-actions-menu';
 import './components/station-selector';
 import './components/overflow-menu';
 import './components/upcoming-songs-popup';
+import './components/station-mode-popup';
 import './pianobar-card-editor';
 
 // Card registration info
@@ -56,8 +57,11 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   @state() private _stationPopupOpen = false;
   @state() private _ratingsPopupOpen = false;
   @state() private _upcomingPopupOpen = false;
+  @state() private _stationModePopupOpen = false;
   @state() private _popupAnchorPosition?: { left: number; top: number; bottom: number; right: number };
   @state() private _upcomingSongs: unknown[] = [];
+  @state() private _stationModes: unknown[] = [];
+  @state() private _stationModesLoading = false;
 
   private _resizeObserver?: ResizeObserver;
 
@@ -492,6 +496,9 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const hasRatings = this._supportsAnyRating(entity);
     const hasCurrentSong = !!entity.attributes.media_title;
     const isOn = entity.state !== 'off' && entity.state !== 'unavailable';
+    // Only show station mode if station is selected and not QuickMix
+    const currentStation = stations.find(s => s.id === entity.attributes.media_content_id);
+    const showStationMode = isOn && hasStations && currentStation && !currentStation.isQuickMix;
 
     return html`
       <pmc-overflow-menu
@@ -501,6 +508,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         .showRatingsOption=${hasRatings}
         .showExplainOption=${hasCurrentSong}
         .showUpcomingOption=${isOn}
+        .showStationModeOption=${showStationMode}
         .isOn=${isOn}
         .disabled=${this._isUnavailable(entity)}
         .buildTime=${__BUILD_TIMESTAMP__}
@@ -510,6 +518,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         @select-ratings=${this._handleOpenRatingsPopup}
         @explain-song=${this._handleExplainSong}
         @show-upcoming=${this._handleShowUpcoming}
+        @station-mode=${this._handleStationMode}
       ></pmc-overflow-menu>
     `;
   }
@@ -620,6 +629,94 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     this._popupAnchorPosition = undefined;
   }
 
+  private async _handleStationMode(e: CustomEvent): Promise<void> {
+    const entity = this._getEntity();
+    if (!entity || !this.hass) return;
+
+    this._popupAnchorPosition = e.detail?.anchorPosition;
+    this._stationModesLoading = true;
+    this._stationModePopupOpen = true;
+    
+    try {
+      // Get current station ID
+      const stationId = entity.attributes.media_content_id as string;
+      if (!stationId) {
+        throw new Error('No station selected');
+      }
+
+      // Call the service to get station modes
+      const response = await this.hass.callService(
+        'pianobar',
+        'get_station_modes',
+        { station_id: stationId },
+        { entity_id: entity.entity_id },
+        true // Return response
+      ) as { modes?: unknown[] } | undefined;
+
+      this._stationModes = response?.modes || [];
+    } catch (err) {
+      console.error('Error getting station modes:', err);
+      // Show error toast
+      const event = new CustomEvent('hass-notification', {
+        detail: {
+          message: 'Failed to get station modes',
+          duration: 3000,
+        },
+        bubbles: true,
+        composed: true,
+      });
+      this.dispatchEvent(event);
+      this._stationModePopupOpen = false;
+    } finally {
+      this._stationModesLoading = false;
+    }
+  }
+
+  private _handleStationModePopupClosed(): void {
+    this._stationModePopupOpen = false;
+    this._popupAnchorPosition = undefined;
+    this._stationModes = [];
+  }
+
+  private async _handleSetStationMode(e: CustomEvent): Promise<void> {
+    const entity = this._getEntity();
+    if (!entity || !this.hass) return;
+
+    const { stationId, modeId } = e.detail;
+    
+    try {
+      await this.hass.callService(
+        'pianobar',
+        'set_station_mode',
+        { station_id: stationId, mode_id: modeId },
+        { entity_id: entity.entity_id }
+      );
+      
+      // Show success toast
+      const event = new CustomEvent('hass-notification', {
+        detail: {
+          message: 'Station mode updated',
+          duration: 2000,
+        },
+        bubbles: true,
+        composed: true,
+      });
+      this.dispatchEvent(event);
+    } catch (err) {
+      console.error('Error setting station mode:', err);
+      // Show error toast
+      const event = new CustomEvent('hass-notification', {
+        detail: {
+          message: 'Failed to set station mode',
+          duration: 3000,
+        },
+        bubbles: true,
+        composed: true,
+      });
+      this.dispatchEvent(event);
+    }
+  }
+
   private _renderStationPopup(entity: HassEntity): TemplateResult | typeof nothing {
     const stationDisplay = this._resolvedConfig?.stationDisplay ?? 'hidden';
     // Render popup-only selector for normal mode OR when explicitly opened (e.g., from overflow menu)
@@ -696,6 +793,29 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         .songs=${this._upcomingSongs}
         @popup-closed=${this._handleUpcomingPopupClosed}
       ></pmc-upcoming-songs-popup>
+    `;
+  }
+
+  private _renderStationModePopup(entity: HassEntity): TemplateResult | typeof nothing {
+    // Only render when explicitly opened
+    if (!this._stationModePopupOpen) return nothing;
+
+    const stations = (entity.attributes.stations as Station[]) || [];
+    const stationId = entity.attributes.media_content_id as string;
+    const currentStation = stations.find(s => s.id === stationId);
+    const stationName = currentStation?.name || '';
+
+    return html`
+      <pmc-station-mode-popup
+        .externalOpen=${this._stationModePopupOpen}
+        .anchorPosition=${this._popupAnchorPosition}
+        .currentStationId=${stationId}
+        .currentStationName=${stationName}
+        .modes=${this._stationModes}
+        .loading=${this._stationModesLoading}
+        @set-mode=${this._handleSetStationMode}
+        @popup-closed=${this._handleStationModePopupClosed}
+      ></pmc-station-mode-popup>
     `;
   }
 
@@ -781,6 +901,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       ${this._renderStationPopup(entity)}
       ${this._renderRatingsPopup(entity)}
       ${this._renderUpcomingPopup()}
+      ${this._renderStationModePopup(entity)}
     `;
   }
 
@@ -897,6 +1018,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         ${this._renderStationPopup(entity)}
         ${this._renderRatingsPopup(entity)}
         ${this._renderUpcomingPopup()}
+        ${this._renderStationModePopup(entity)}
       </ha-card>
     `;
   }
