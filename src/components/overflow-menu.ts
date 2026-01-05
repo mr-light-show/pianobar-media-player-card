@@ -9,6 +9,7 @@ export class OverflowMenu extends LitElement {
   @property({ type: Boolean }) showExplainOption = false;
   @property({ type: Boolean }) showUpcomingOption = false;
   @property({ type: Boolean }) showStationModeOption = false;
+  @property({ type: Boolean }) showQuickMixOption = false;
   @property({ type: Boolean }) isOn = true;
   @property({ type: Boolean }) disabled = false;
   @property({ type: String }) buildTime = '';
@@ -173,6 +174,7 @@ export class OverflowMenu extends LitElement {
     if (this.showExplainOption) itemCount++;
     if (this.showUpcomingOption) itemCount++;
     if (this.showStationModeOption) itemCount++;
+    if (this.showQuickMixOption) itemCount++;
     const menuHeight = itemCount * 44 + (this.buildTime ? 40 : 0); // Approximate height per item + build time
     const menuWidth = 180;
     const padding = 8;
@@ -357,8 +359,18 @@ export class OverflowMenu extends LitElement {
     }
     
     // Divider after station actions if they exist
-    if (this.showStationModeOption) {
+    if (this.showStationModeOption || this.showQuickMixOption) {
       menuItems += `<div style="height: 1px; background: var(--divider-color, rgba(0, 0, 0, 0.1)); margin: 4px 0;"></div>`;
+    }
+    
+    // QuickMix management
+    if (this.showQuickMixOption) {
+      menuItems += `
+        <button class="menu-item" data-action="quickmix">
+          <ha-icon icon="mdi:playlist-music"></ha-icon>
+          <span>QuickMix Settings</span>
+        </button>
+      `;
     }
     
     // Station/System actions
@@ -423,6 +435,9 @@ export class OverflowMenu extends LitElement {
         } else if (action === 'station-mode') {
           const rect = (item as Element).getBoundingClientRect();
           this.dispatchEvent(new CustomEvent('station-mode', { bubbles: true, composed: true, detail: { anchorPosition: { left: rect.left, top: rect.top, bottom: rect.bottom, right: rect.right } } }));
+        } else if (action === 'quickmix') {
+          const rect = (item as Element).getBoundingClientRect();
+          this.dispatchEvent(new CustomEvent('quickmix', { bubbles: true, composed: true, detail: { anchorPosition: { left: rect.left, top: rect.top, bottom: rect.bottom, right: rect.right } } }));
         }
         this._menuOpen = false;
         this._updatePortalContent();

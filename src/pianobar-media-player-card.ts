@@ -22,6 +22,7 @@ import './components/station-selector';
 import './components/overflow-menu';
 import './components/upcoming-songs-popup';
 import './components/station-mode-popup';
+import './components/quickmix-popup';
 import './pianobar-card-editor';
 
 // Card registration info
@@ -62,6 +63,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   @state() private _upcomingSongs: unknown[] = [];
   @state() private _stationModes: unknown[] = [];
   @state() private _stationModesLoading = false;
+  @state() private _openQuickMixPopup = false;
 
   private _resizeObserver?: ResizeObserver;
 
@@ -499,6 +501,8 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     // Only show station mode if station is selected and not QuickMix
     const currentStation = stations.find(s => s.id === entity.attributes.media_content_id);
     const showStationMode = isOn && hasStations && currentStation && !currentStation.isQuickMix;
+    // Show QuickMix option if player is on and we have stations (including QuickMix itself)
+    const showQuickMix = isOn && hasStations;
 
     return html`
       <pmc-overflow-menu
@@ -509,6 +513,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         .showExplainOption=${hasCurrentSong}
         .showUpcomingOption=${isOn}
         .showStationModeOption=${showStationMode}
+        .showQuickMixOption=${showQuickMix}
         .isOn=${isOn}
         .disabled=${this._isUnavailable(entity)}
         .buildTime=${__BUILD_TIMESTAMP__}
@@ -519,6 +524,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         @explain-song=${this._handleExplainSong}
         @show-upcoming=${this._handleShowUpcoming}
         @station-mode=${this._handleStationMode}
+        @quickmix=${this._handleQuickMix}
       ></pmc-overflow-menu>
     `;
   }
@@ -717,6 +723,58 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     }
   }
 
+  // QuickMix handlers
+  private _handleQuickMix(e: CustomEvent): void {
+    this._popupAnchorPosition = e.detail?.anchorPosition;
+    this._openQuickMixPopup = true;
+  }
+
+  private _handleQuickMixPopupClosed(): void {
+    this._openQuickMixPopup = false;
+    this._popupAnchorPosition = undefined;
+  }
+
+  private async _handleQuickMixSave(e: CustomEvent): Promise<void> {
+    const entity = this._getEntity();
+    if (!entity || !this.hass) return;
+
+    const { stationIds } = e.detail;
+    
+    try {
+      await this.hass.callService(
+        'pianobar',
+        'set_quick_mix',
+        { station_ids: stationIds },
+        { entity_id: entity.entity_id }
+      );
+      
+      // Show success toast
+      const event = new CustomEvent('hass-notification', {
+        detail: {
+          message: 'QuickMix settings updated',
+          duration: 2000,
+        },
+        bubbles: true,
+        composed: true,
+      });
+      this.dispatchEvent(event);
+      
+      // Close the popup
+      this._handleQuickMixPopupClosed();
+    } catch (err) {
+      console.error('Error updating QuickMix:', err);
+      const errorEvent = new CustomEvent('hass-notification', {
+        detail: {
+          message: 'Error updating QuickMix settings',
+          duration: 3000,
+        },
+        bubbles: true,
+        composed: true,
+      });
+      this.dispatchEvent(errorEvent);
+    }
+  }
+
   private _renderStationPopup(entity: HassEntity): TemplateResult | typeof nothing {
     const stationDisplay = this._resolvedConfig?.stationDisplay ?? 'hidden';
     // Render popup-only selector for normal mode OR when explicitly opened (e.g., from overflow menu)
@@ -819,6 +877,24 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     `;
   }
 
+  private _renderQuickMixPopup(entity: HassEntity): TemplateResult | typeof nothing {
+    if (!this._openQuickMixPopup) return nothing;
+
+    const stations = (entity.attributes.stations as Station[]) || [];
+    const unavailable = this._isUnavailable(entity);
+
+    return html`
+      <pmc-quickmix-popup
+        .stations=${stations}
+        .disabled=${unavailable}
+        .externalOpen=${this._openQuickMixPopup}
+        .anchorPosition=${this._popupAnchorPosition}
+        @save=${this._handleQuickMixSave}
+        @popup-closed=${this._handleQuickMixPopupClosed}
+      ></pmc-quickmix-popup>
+    `;
+  }
+
   private _renderStationPill(entity: HassEntity): TemplateResult | typeof nothing {
     const stationDisplay = this._resolvedConfig?.stationDisplay ?? 'hidden';
     if (stationDisplay === 'hidden') return nothing;
@@ -902,6 +978,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       ${this._renderRatingsPopup(entity)}
       ${this._renderUpcomingPopup()}
       ${this._renderStationModePopup(entity)}
+      ${this._renderQuickMixPopup(entity)}
     `;
   }
 
@@ -1019,6 +1096,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         ${this._renderRatingsPopup(entity)}
         ${this._renderUpcomingPopup()}
         ${this._renderStationModePopup(entity)}
+        ${this._renderQuickMixPopup(entity)}
       </ha-card>
     `;
   }
