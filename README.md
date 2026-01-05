@@ -1,8 +1,14 @@
 # Pianobar Media Player Card
 
-![Pianobar Media Player Card](https://raw.githubusercontent.com/mr-light-show/pianobar-media-player-card/main/assets/screenshot.svg)
+A custom Home Assistant Lovelace card for the [pianobar-ha](https://github.com/khawes/pianobar-ha) pandora media player integration with beautiful album artwork integration.
 
-A custom Home Assistant Lovelace card for the [pianobar-ha](https://github.com/khawes/pianobar-ha) pandora media player integration. Features include:
+## Screenshots
+
+| Default | Full | Minimal | Tall |
+|---------|------|---------|------|
+| ![Default](assets/screenshot-default.png) | ![Full](assets/screenshot-full.png) | ![Minimal](assets/screenshot-minimal.png) | ![Tall](assets/screenshot-tall.png) |
+
+## Features
 
 - Thumbs up / down / snooze (tired) song actions
 - Volume control override to a different media player
