@@ -640,6 +640,10 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const entity = this._getEntity();
     if (!entity || !this.hass) return;
 
+    // Force close first to ensure clean state
+    this._upcomingPopupOpen = false;
+    await this.updateComplete;
+
     this._popupAnchorPosition = e.detail?.anchorPosition;
     
     try {
@@ -677,6 +681,10 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   private async _handleStationMode(e: CustomEvent): Promise<void> {
     const entity = this._getEntity();
     if (!entity || !this.hass) return;
+
+    // Force close first to ensure clean state
+    this._stationModePopupOpen = false;
+    await this.updateComplete;
 
     this._popupAnchorPosition = e.detail?.anchorPosition;
     this._stationModesLoading = true;
@@ -767,7 +775,11 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   }
 
   // QuickMix handlers
-  private _handleQuickMix(e: CustomEvent): void {
+  private async _handleQuickMix(e: CustomEvent): Promise<void> {
+    // Force close first to ensure clean state
+    this._openQuickMixPopup = false;
+    await this.updateComplete;
+
     this._popupAnchorPosition = e.detail?.anchorPosition;
     this._openQuickMixPopup = true;
   }
@@ -820,7 +832,11 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   }
 
   // Rename handlers
-  private _handleRenameStation(e: CustomEvent): void {
+  private async _handleRenameStation(e: CustomEvent): Promise<void> {
+    // Force close first to ensure clean state
+    this._openRenameDialog = false;
+    await this.updateComplete;
+
     this._popupAnchorPosition = e.detail?.anchorPosition;
     this._openRenameDialog = true;
   }
@@ -879,7 +895,11 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   }
 
   // Delete handlers
-  private _handleDeleteStation(e: CustomEvent): void {
+  private async _handleDeleteStation(e: CustomEvent): Promise<void> {
+    // Force close first to ensure clean state
+    this._openDeleteDialog = false;
+    await this.updateComplete;
+
     this._popupAnchorPosition = e.detail?.anchorPosition;
     this._openDeleteDialog = true;
   }
@@ -935,6 +955,10 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   private async _handleStationInfo(e: CustomEvent): Promise<void> {
     const entity = this._getEntity();
     if (!entity || !this.hass) return;
+
+    // Force close first to ensure clean state
+    this._openStationInfoPopup = false;
+    await this.updateComplete;
 
     this._popupAnchorPosition = e.detail?.anchorPosition;
     this._openStationInfoPopup = true;
@@ -1073,7 +1097,11 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   }
 
   // Add Music handlers
-  private _handleAddMusic(e: CustomEvent): void {
+  private async _handleAddMusic(e: CustomEvent): Promise<void> {
+    // Force close first to ensure clean state
+    this._openAddMusicPopup = false;
+    await this.updateComplete;
+
     this._popupAnchorPosition = e.detail?.anchorPosition;
     this._openAddMusicPopup = true;
     this._searchResults = { categories: [] };
@@ -1169,7 +1197,11 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   }
 
   // Create Station handlers
-  private _handleCreateStation(e: CustomEvent): void {
+  private async _handleCreateStation(e: CustomEvent): Promise<void> {
+    // Force close first to ensure clean state
+    this._openCreateStationModal = false;
+    await this.updateComplete;
+
     this._popupAnchorPosition = e.detail?.anchorPosition;
     this._openCreateStationModal = true;
     this._searchResults = { categories: [] };
