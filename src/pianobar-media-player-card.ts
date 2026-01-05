@@ -20,6 +20,7 @@ import './components/volume-slider';
 import './components/song-actions-menu';
 import './components/station-selector';
 import './components/overflow-menu';
+import './components/upcoming-songs-popup';
 import './pianobar-card-editor';
 
 // Card registration info
@@ -54,7 +55,9 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   @state() private _cardHeight = 0;
   @state() private _stationPopupOpen = false;
   @state() private _ratingsPopupOpen = false;
+  @state() private _upcomingPopupOpen = false;
   @state() private _popupAnchorPosition?: { left: number; top: number; bottom: number; right: number };
+  @state() private _upcomingSongs: unknown[] = [];
 
   private _resizeObserver?: ResizeObserver;
 
@@ -497,6 +500,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         .showStationOption=${hasStations}
         .showRatingsOption=${hasRatings}
         .showExplainOption=${hasCurrentSong}
+        .showUpcomingOption=${isOn}
         .isOn=${isOn}
         .disabled=${this._isUnavailable(entity)}
         .buildTime=${__BUILD_TIMESTAMP__}
@@ -505,6 +509,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         @select-station=${this._handleOpenStationPopup}
         @select-ratings=${this._handleOpenRatingsPopup}
         @explain-song=${this._handleExplainSong}
+        @show-upcoming=${this._handleShowUpcoming}
       ></pmc-overflow-menu>
     `;
   }
@@ -577,6 +582,44 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     this._popupAnchorPosition = undefined;
   }
 
+  private async _handleShowUpcoming(e: CustomEvent): Promise<void> {
+    const entity = this._getEntity();
+    if (!entity || !this.hass) return;
+
+    this._popupAnchorPosition = e.detail?.anchorPosition;
+    
+    try {
+      // Call the service to get upcoming songs
+      const response = await this.hass.callService(
+        'pianobar',
+        'get_upcoming',
+        {},
+        { entity_id: entity.entity_id },
+        true // Return response
+      ) as { songs?: unknown[] } | undefined;
+
+      this._upcomingSongs = response?.songs || [];
+      this._upcomingPopupOpen = true;
+    } catch (err) {
+      console.error('Error getting upcoming songs:', err);
+      // Show error toast
+      const event = new CustomEvent('hass-notification', {
+        detail: {
+          message: 'Failed to get upcoming songs',
+          duration: 3000,
+        },
+        bubbles: true,
+        composed: true,
+      });
+      this.dispatchEvent(event);
+    }
+  }
+
+  private _handleUpcomingPopupClosed(): void {
+    this._upcomingPopupOpen = false;
+    this._popupAnchorPosition = undefined;
+  }
+
   private _renderStationPopup(entity: HassEntity): TemplateResult | typeof nothing {
     const stationDisplay = this._resolvedConfig?.stationDisplay ?? 'hidden';
     // Render popup-only selector for normal mode OR when explicitly opened (e.g., from overflow menu)
@@ -639,6 +682,20 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         @tired-song=${this._handleTiredSong}
         @popup-closed=${this._handleRatingsPopupClosed}
       ></pmc-song-actions-menu>
+    `;
+  }
+
+  private _renderUpcomingPopup(): TemplateResult | typeof nothing {
+    // Only render when explicitly opened
+    if (!this._upcomingPopupOpen) return nothing;
+
+    return html`
+      <pmc-upcoming-songs-popup
+        .externalOpen=${this._upcomingPopupOpen}
+        .anchorPosition=${this._popupAnchorPosition}
+        .songs=${this._upcomingSongs}
+        @popup-closed=${this._handleUpcomingPopupClosed}
+      ></pmc-upcoming-songs-popup>
     `;
   }
 
@@ -723,6 +780,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
       ${this._renderStationPopup(entity)}
       ${this._renderRatingsPopup(entity)}
+      ${this._renderUpcomingPopup()}
     `;
   }
 
@@ -838,6 +896,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
         ${this._renderStationPopup(entity)}
         ${this._renderRatingsPopup(entity)}
+        ${this._renderUpcomingPopup()}
       </ha-card>
     `;
   }

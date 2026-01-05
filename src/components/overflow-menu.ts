@@ -7,6 +7,7 @@ export class OverflowMenu extends LitElement {
   @property({ type: Boolean }) showStationOption = false;
   @property({ type: Boolean }) showRatingsOption = false;
   @property({ type: Boolean }) showExplainOption = false;
+  @property({ type: Boolean }) showUpcomingOption = false;
   @property({ type: Boolean }) isOn = true;
   @property({ type: Boolean }) disabled = false;
   @property({ type: String }) buildTime = '';
@@ -169,6 +170,7 @@ export class OverflowMenu extends LitElement {
     if (this.showStationOption) itemCount++;
     if (this.showRatingsOption) itemCount++;
     if (this.showExplainOption) itemCount++;
+    if (this.showUpcomingOption) itemCount++;
     const menuHeight = itemCount * 44 + (this.buildTime ? 40 : 0); // Approximate height per item + build time
     const menuWidth = 180;
     const padding = 8;
@@ -319,6 +321,15 @@ export class OverflowMenu extends LitElement {
       `;
     }
     
+    if (this.showUpcomingOption) {
+      menuItems += `
+        <button class="menu-item" data-action="show-upcoming">
+          <ha-icon icon="mdi:playlist-music"></ha-icon>
+          <span>Show Upcoming Songs</span>
+        </button>
+      `;
+    }
+    
     if (this.showRatingsOption) {
       menuItems += `
         <button class="menu-item" data-action="select-ratings">
@@ -329,7 +340,7 @@ export class OverflowMenu extends LitElement {
     }
 
     // Divider if song actions exist
-    if (this.showExplainOption || this.showRatingsOption) {
+    if (this.showExplainOption || this.showRatingsOption || this.showUpcomingOption) {
       menuItems += `<div style="height: 1px; background: var(--divider-color, rgba(0, 0, 0, 0.1)); margin: 4px 0;"></div>`;
     }
     
@@ -389,6 +400,9 @@ export class OverflowMenu extends LitElement {
           this.dispatchEvent(new CustomEvent('select-ratings', { bubbles: true, composed: true, detail: { anchorPosition: { left: rect.left, top: rect.top, bottom: rect.bottom, right: rect.right } } }));
         } else if (action === 'explain-song') {
           this.dispatchEvent(new CustomEvent('explain-song', { bubbles: true, composed: true }));
+        } else if (action === 'show-upcoming') {
+          const rect = (item as Element).getBoundingClientRect();
+          this.dispatchEvent(new CustomEvent('show-upcoming', { bubbles: true, composed: true, detail: { anchorPosition: { left: rect.left, top: rect.top, bottom: rect.bottom, right: rect.right } } }));
         }
         this._menuOpen = false;
         this._updatePortalContent();
