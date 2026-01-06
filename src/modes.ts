@@ -48,7 +48,7 @@ const MODE_PRESETS: Record<CardMode, ModePreset> = {
     showProgressTime: false,
     showPlaybackControls: true,
     showPowerButton: false,
-    stationDisplay: 'hidden',
+    stationDisplay: 'normal',
   },
   minimal: {
     artwork: 'default',
@@ -58,7 +58,7 @@ const MODE_PRESETS: Record<CardMode, ModePreset> = {
     showAlbum: false,
     reserveDetailsSpace: false,
     showVolumeControl: false,
-    showSongActions: true,
+    showSongActions: false,
     showProgressBar: true,
     showProgressTime: false,
     showPlaybackControls: true,

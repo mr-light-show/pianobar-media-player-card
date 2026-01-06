@@ -42,7 +42,7 @@ export const cardStyles = css`
   }
 
   ha-card.no-reserve .card-content {
-    min-height: auto;
+    min-height: auto !important;
     justify-content: flex-start;
     padding-top: 12px;
     padding-bottom: 4px;

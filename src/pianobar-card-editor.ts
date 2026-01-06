@@ -40,8 +40,8 @@ const MODE_SCHEMA = [
         mode: 'dropdown',
         options: [
           { value: 'default', label: 'Default - Standard layout with artwork on right' },
-          { value: 'full', label: 'Full - Full-cover artwork background' },
           { value: 'minimal', label: 'Minimal - Compact view with minimal controls' },
+          { value: 'full', label: 'Full - Full-cover artwork background' },
           { value: 'tall', label: 'Tall - Vertical layout with artwork on top' },
           { value: 'custom', label: 'Custom - Full control over all options' },
         ],
@@ -86,7 +86,7 @@ const STATION_DISPLAY_SCHEMA = [
         options: [
           { value: 'hidden', label: 'Hidden' },
           { value: 'compact', label: 'Compact (icon only)' },
-          { value: 'normal', label: 'Normal (icon + station name)' },
+          { value: 'normal', label: 'Full (icon + station name)' },
         ],
       },
     },
@@ -260,10 +260,34 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
     const detail = ev.detail as { value: Record<string, unknown> };
     if (!detail.value || !this._config) return;
 
-    // Build new config with appearance changes
-    const newConfig = { ...this._config, ...detail.value };
+    // Get FULLY RESOLVED config (with all preset values applied)
+    const currentMode = this._config?.mode || 'default';
+    const preset = getModePreset(currentMode);
+    const isCustomMode = currentMode === 'custom';
     
-    // Detect if settings match a preset
+    // Build complete config with all current effective values
+    const resolvedConfig = {
+      ...this._config,
+      // Fill in all preset values if not in custom mode
+      artwork: isCustomMode ? (this._config?.artwork ?? preset.artwork) : preset.artwork,
+      showDetails: isCustomMode ? (this._config?.showDetails ?? preset.showDetails) : preset.showDetails,
+      showTitle: isCustomMode ? (this._config?.showTitle ?? preset.showTitle) : preset.showTitle,
+      showArtist: isCustomMode ? (this._config?.showArtist ?? preset.showArtist) : preset.showArtist,
+      showAlbum: isCustomMode ? (this._config?.showAlbum ?? preset.showAlbum) : preset.showAlbum,
+      reserveDetailsSpace: isCustomMode ? (this._config?.reserveDetailsSpace ?? preset.reserveDetailsSpace) : preset.reserveDetailsSpace,
+      showPlaybackControls: isCustomMode ? (this._config?.showPlaybackControls ?? preset.showPlaybackControls) : preset.showPlaybackControls,
+      showPowerButton: isCustomMode ? (this._config?.showPowerButton ?? preset.showPowerButton) : preset.showPowerButton,
+      showVolumeControl: isCustomMode ? (this._config?.showVolumeControl ?? preset.showVolumeControl) : preset.showVolumeControl,
+      showSongActions: isCustomMode ? (this._config?.showSongActions ?? preset.showSongActions) : preset.showSongActions,
+      showProgressBar: isCustomMode ? (this._config?.showProgressBar ?? preset.showProgressBar) : preset.showProgressBar,
+      showProgressTime: isCustomMode ? (this._config?.showProgressTime ?? preset.showProgressTime) : preset.showProgressTime,
+      stationDisplay: isCustomMode ? (this._config?.stationDisplay ?? preset.stationDisplay) : preset.stationDisplay,
+    };
+    
+    // Now apply the appearance changes to the COMPLETE config
+    const newConfig = { ...resolvedConfig, ...detail.value };
+    
+    // Detect if settings match a preset (usually won't - will be 'custom')
     const detectedMode = detectMatchingPreset(newConfig);
     newConfig.mode = detectedMode;
     
@@ -454,7 +478,7 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
     // Get the resolved values (from preset or custom)
     const currentMode = this._config?.mode || 'default';
     const preset = getModePreset(currentMode);
-    
+
     // For preset modes, ONLY show preset values
     // For custom mode, show config values with preset fallback
     const isCustomMode = currentMode === 'custom';
