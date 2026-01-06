@@ -616,8 +616,21 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     }
   }
 
-  private _handleOpenStationPopup(e: CustomEvent): void {
-    this._popupAnchorPosition = e.detail?.anchorPosition;
+  private _handleOpenStationPopup(e: Event): void {
+    let anchorPosition = (e as CustomEvent).detail?.anchorPosition;
+    
+    // If no anchor position provided, calculate it from the clicked element
+    if (!anchorPosition && e.currentTarget) {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      anchorPosition = {
+        left: rect.left,
+        top: rect.top,
+        bottom: rect.bottom,
+        right: rect.right
+      };
+    }
+    
+    this._popupAnchorPosition = anchorPosition;
     this._stationPopupOpen = true;
   }
 
