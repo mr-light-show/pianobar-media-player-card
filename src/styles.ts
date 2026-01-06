@@ -110,12 +110,8 @@ export const cardStyles = css`
   .fullcover-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-      to top,
-      rgba(0, 0, 0, 0.8) 0%,
-      rgba(0, 0, 0, 0.4) 50%,
-      rgba(0, 0, 0, 0.2) 100%
-    );
+    /* Removed gradient overlay to show artwork naturally */
+    background: none;
     z-index: 1;
   }
 

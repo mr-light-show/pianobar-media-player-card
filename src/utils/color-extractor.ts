@@ -231,7 +231,7 @@ interface SampleRegion {
 }
 
 // Regions for full cover mode
-const METADATA_REGION: SampleRegion = { x: 0, y: 0, width: 0.4, height: 0.7 };
+const METADATA_REGION: SampleRegion = { x: 0, y: 0, width: 0.4, height: 0.5 };
 const CONTROLS_REGION: SampleRegion = { x: 0, y: 0.7, width: 1, height: 0.3 };
 
 // Overlay opacity values matching .fullcover-overlay CSS gradient
@@ -377,17 +377,23 @@ function getContrastingColor(
     // Try to adjust the vibrant color to meet contrast requirements
     const adjusted = adjustColorForContrast(vibrantRgb, effectiveBg);
     if (adjusted) {
-      return rgbToHex(adjusted);
+      const adjustedHex = rgbToHex(adjusted);
+      const adjustedContrast = getContrastRatio(adjusted, effectiveBg);
+      
+      // Verify adjusted color meets contrast requirements
+      if (adjustedContrast >= CONTRAST_RATIO) {
+        return adjustedHex;
+      }
     }
   }
   
-  // Fallback: use white or black based on luminance
-  const lum = luminance(effectiveBg[0], effectiveBg[1], effectiveBg[2]);
-  if (lum < 0.5) {
-    return '#ffffff';
-  } else {
-    return '#1a1a1a';
-  }
+  // Fallback: calculate which has better contrast - white or black
+  const whiteRgb = [255, 255, 255];
+  const blackRgb = [26, 26, 26];
+  const whiteContrast = getContrastRatio(whiteRgb, effectiveBg);
+  const blackContrast = getContrastRatio(blackRgb, effectiveBg);
+  
+  return whiteContrast > blackContrast ? '#ffffff' : '#1a1a1a';
 }
 
 /**
@@ -444,24 +450,24 @@ export async function extractRegionalColors(imageUrl: string | undefined): Promi
       // Extract vibrant colors from metadata region (top-left)
       const [metadataVibrantFg, metadataVibrantBg] = await extractVibrantFromRegion(canvas, METADATA_REGION);
       const metadataAvg = getRegionAverageColor(imageData, METADATA_REGION, canvas.width, canvas.height);
-      metadataForeground = getContrastingColor(metadataAvg, metadataVibrantFg, METADATA_OVERLAY_OPACITY);
+      metadataForeground = getContrastingColor(metadataAvg, metadataVibrantFg, 0);
     } catch (err) {
       console.warn('Failed to extract vibrant colors from metadata region:', err);
       // Fallback to average color method
       const metadataAvg = getRegionAverageColor(imageData, METADATA_REGION, canvas.width, canvas.height);
-      metadataForeground = getContrastingColor(metadataAvg, null, METADATA_OVERLAY_OPACITY);
+      metadataForeground = getContrastingColor(metadataAvg, null, 0);
     }
     
     try {
       // Extract vibrant colors from controls region (bottom)
       const [controlsVibrantFg, controlsVibrantBg] = await extractVibrantFromRegion(canvas, CONTROLS_REGION);
       const controlsAvg = getRegionAverageColor(imageData, CONTROLS_REGION, canvas.width, canvas.height);
-      controlsForeground = getContrastingColor(controlsAvg, controlsVibrantFg, CONTROLS_OVERLAY_OPACITY);
+      controlsForeground = getContrastingColor(controlsAvg, controlsVibrantFg, 0);
     } catch (err) {
       console.warn('Failed to extract vibrant colors from controls region:', err);
       // Fallback to average color method
       const controlsAvg = getRegionAverageColor(imageData, CONTROLS_REGION, canvas.width, canvas.height);
-      controlsForeground = getContrastingColor(controlsAvg, null, CONTROLS_OVERLAY_OPACITY);
+      controlsForeground = getContrastingColor(controlsAvg, null, 0);
     }
 
     const result: ExtractedColors = {

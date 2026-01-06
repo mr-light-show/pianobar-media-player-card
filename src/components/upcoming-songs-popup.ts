@@ -1,5 +1,6 @@
-import { LitElement, html, css, nothing, PropertyValues } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
+import { html, css, nothing, TemplateResult, CSSResultGroup } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+import { BasePopup } from './base-popup';
 
 interface UpcomingSong {
   title: string;
@@ -12,261 +13,147 @@ interface UpcomingSong {
 }
 
 @customElement('pmc-upcoming-songs-popup')
-export class UpcomingSongsPopup extends LitElement {
+export class UpcomingSongsPopup extends BasePopup {
   @property({ type: Array }) songs: UpcomingSong[] = [];
-  @property({ type: Boolean }) disabled = false;
-  @property({ type: Boolean }) externalOpen = false;
-  @property({ type: Object }) anchorPosition?: { left: number; top: number; bottom: number; right: number };
 
-  @state() private _menuOpen = false;
-  @state() private _menuTop = 0;
-  @state() private _menuLeft = 0;
-
-  private _ignoreNextClickOutside = false;
-
-  static styles = css`
-    :host {
-      position: relative;
-      display: inline-block;
-    }
-
-    .menu-popup {
-      position: fixed;
-      background: var(--pmc-card-background);
-      border-radius: 12px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-      padding: 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      z-index: 99999;
-      min-width: 300px;
-      max-width: 400px;
-      max-height: calc(100vh - 100px);
-      overflow-y: auto;
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity 0.2s, visibility 0.2s;
-    }
-
-    .menu-popup.open {
-      opacity: 1;
-      visibility: visible;
-    }
-
-    .popup-header {
-      padding: 8px 12px;
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--primary-text-color);
-      border-bottom: 1px solid var(--pmc-divider);
-      margin-bottom: 4px;
-    }
-
-    .song-item {
-      display: flex;
-      gap: 12px;
-      padding: 8px;
-      border-radius: 8px;
-      transition: background-color 0.2s;
-    }
-
-    .song-item:hover {
-      background: var(--pmc-secondary-background);
-    }
-
-    .song-artwork {
-      width: 48px;
-      height: 48px;
-      border-radius: 4px;
-      object-fit: cover;
-      flex-shrink: 0;
-      background: var(--pmc-secondary-background);
-    }
-
-    .song-artwork-placeholder {
-      width: 48px;
-      height: 48px;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--pmc-secondary-background);
-      color: var(--secondary-text-color);
-      flex-shrink: 0;
-    }
-
-    .song-artwork-placeholder ha-icon {
-      --mdc-icon-size: 24px;
-    }
-
-    .song-info {
-      flex: 1;
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .song-title {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--primary-text-color);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .song-artist {
-      font-size: 12px;
-      color: var(--secondary-text-color);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .song-station {
-      font-size: 11px;
-      color: var(--secondary-text-color);
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .song-station ha-icon {
-      --mdc-icon-size: 12px;
-    }
-
-    .song-rating {
-      display: flex;
-      align-items: center;
-      margin-top: 2px;
-    }
-
-    .song-rating ha-icon {
-      --mdc-icon-size: 16px;
-      color: var(--pmc-primary-color);
-    }
-
-    .no-songs {
-      padding: 24px;
-      text-align: center;
-      color: var(--secondary-text-color);
-      font-size: 14px;
-    }
-
-    .backdrop {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 99998;
-    }
-  `;
-
-  connectedCallback() {
-    super.connectedCallback();
-    this._handleClickOutside = this._handleClickOutside.bind(this);
-    document.addEventListener('click', this._handleClickOutside);
-  }
-
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    document.removeEventListener('click', this._handleClickOutside);
-  }
-
-  private _handleClickOutside(event: MouseEvent) {
-    if (this._ignoreNextClickOutside) {
-      this._ignoreNextClickOutside = false;
-      return;
-    }
-    if (this._menuOpen && !event.composedPath().includes(this)) {
-      this._menuOpen = false;
-      this.dispatchEvent(new CustomEvent('popup-closed', { bubbles: true, composed: true }));
-    }
-  }
-
-  firstUpdated() {
-    if (this.externalOpen && !this._menuOpen) {
-      this._openPopupExternal();
-    }
-  }
-
-  updated(changedProperties: PropertyValues) {
-    if (changedProperties.has('externalOpen') && this.externalOpen && !this._menuOpen) {
-      this._openPopupExternal();
-    }
-    if (changedProperties.has('anchorPosition') && this._menuOpen && this.anchorPosition) {
-      this._updateMenuPosition();
-    }
-  }
-
-  private _openPopupExternal() {
-    this._ignoreNextClickOutside = true;
-    requestAnimationFrame(() => {
-      this._openPopup();
-    });
-  }
-
-  private _openPopup() {
-    if (!this.disabled) {
-      this._updateMenuPosition();
-      this._menuOpen = true;
-    }
-  }
-
-  private _updateMenuPosition() {
-    if (this.anchorPosition) {
-      // Use anchor position for popup positioning
-      const menuWidth = 350;
-      const estimatedHeight = this.songs.length * 64 + 50;
-      const maxMenuHeight = window.innerHeight - 100; // Account for max-height: calc(100vh - 100px)
-      const menuHeight = Math.min(estimatedHeight, maxMenuHeight);
-      const padding = 8;
-      const gap = 4;
-
-      // Position below anchor by default
-      let left = this.anchorPosition.left;
-      let top = this.anchorPosition.bottom + gap;
-
-      // Clamp to screen edges
-      left = Math.max(padding, Math.min(left, window.innerWidth - menuWidth - padding));
-      
-      // If not enough space below, show above
-      if (top + menuHeight > window.innerHeight - padding) {
-        top = this.anchorPosition.top - gap - menuHeight;
-        top = Math.max(padding, top);
-      } else {
-        top = Math.min(top, window.innerHeight - menuHeight - padding);
-      }
-
-      this._menuLeft = left;
-      this._menuTop = top;
-    }
-  }
-
-  render() {
-    if (!this.externalOpen) {
-      return nothing;
-    }
-
-    return html`
-      ${this._menuOpen ? html`<div class="backdrop" @click=${() => { this._menuOpen = false; }}></div>` : nothing}
-      <div
-        class="menu-popup ${this._menuOpen ? 'open' : ''}"
-        style="left: ${this._menuLeft}px; top: ${this._menuTop}px;"
-      >
-        <div class="popup-header">Upcoming Songs</div>
-        ${this.songs.length > 0
-          ? this.songs.map(song => this._renderSongItem(song))
-          : html`<div class="no-songs">No upcoming songs</div>`
+  static get styles(): CSSResultGroup {
+    return [
+      BasePopup.baseStyles,
+      css`
+        .popup-container {
+          padding: 8px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          min-width: 300px;
+          max-width: 400px;
+          max-height: calc(100vh - 100px);
+          overflow-y: auto;
         }
-      </div>
+
+        .popup-header {
+          padding: 8px 12px;
+          font-size: 16px;
+          font-weight: 600;
+          color: var(--primary-text-color);
+          border-bottom: 1px solid var(--pmc-divider);
+          margin-bottom: 4px;
+        }
+
+        .song-item {
+          display: flex;
+          gap: 12px;
+          padding: 8px;
+          border-radius: 8px;
+          transition: background-color 0.2s;
+        }
+
+        .song-item:hover {
+          background: var(--pmc-secondary-background);
+        }
+
+        .song-artwork {
+          width: 48px;
+          height: 48px;
+          border-radius: 4px;
+          object-fit: cover;
+          flex-shrink: 0;
+          background: var(--pmc-secondary-background);
+        }
+
+        .song-artwork-placeholder {
+          width: 48px;
+          height: 48px;
+          border-radius: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--pmc-secondary-background);
+          color: var(--secondary-text-color);
+          flex-shrink: 0;
+        }
+
+        .song-artwork-placeholder ha-icon {
+          --mdc-icon-size: 24px;
+        }
+
+        .song-info {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .song-title {
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--primary-text-color);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .song-artist {
+          font-size: 12px;
+          color: var(--secondary-text-color);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .song-station {
+          font-size: 11px;
+          color: var(--secondary-text-color);
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .song-station ha-icon {
+          --mdc-icon-size: 12px;
+        }
+
+        .song-rating {
+          display: flex;
+          align-items: center;
+          margin-top: 2px;
+        }
+
+        .song-rating ha-icon {
+          --mdc-icon-size: 16px;
+          color: var(--pmc-primary-color);
+        }
+
+        .no-songs {
+          padding: 24px;
+          text-align: center;
+          color: var(--secondary-text-color);
+          font-size: 14px;
+        }
+      `
+    ];
+  }
+
+  protected getPopupDimensions(): { width: number; height: number } {
+    const menuWidth = 350;
+    const estimatedHeight = this.songs.length * 64 + 50;
+    const maxMenuHeight = window.innerHeight - 100;
+    const menuHeight = Math.min(estimatedHeight, maxMenuHeight);
+    return { width: menuWidth, height: menuHeight };
+  }
+
+  protected renderPopupContent(): TemplateResult {
+    return html`
+      <div class="popup-header">Upcoming Songs</div>
+      ${this.songs.length > 0
+        ? this.songs.map(song => this.renderSongItem(song))
+        : html`<div class="no-songs">No upcoming songs</div>`
+      }
     `;
   }
 
-  private _renderSongItem(song: UpcomingSong) {
+  private renderSongItem(song: UpcomingSong): TemplateResult {
     return html`
       <div class="song-item">
         ${song.coverArt
@@ -308,4 +195,3 @@ declare global {
     'pmc-upcoming-songs-popup': UpcomingSongsPopup;
   }
 }
-
