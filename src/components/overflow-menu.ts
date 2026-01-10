@@ -366,11 +366,6 @@ export class OverflowMenu extends LitElement {
       `;
     }
 
-    // Divider if song actions exist
-    if (this.showExplainOption || this.showRatingsOption || this.showUpcomingOption) {
-      menuItems += `<div style="height: 1px; background: var(--divider-color, rgba(0, 0, 0, 0.1)); margin: 4px 0;"></div>`;
-    }
-    
     // Station actions section
     if (this.showStationModeOption) {
       menuItems += `
@@ -392,11 +387,6 @@ export class OverflowMenu extends LitElement {
     
     // Divider after station actions if they exist
     if (this.showStationModeOption || this.showStationInfoOption) {
-      menuItems += `<div style="height: 1px; background: var(--divider-color, rgba(0, 0, 0, 0.1)); margin: 4px 0;"></div>`;
-    }
-    
-    // Divider before station management actions
-    if (this.showAddMusicOption || this.showCreateStationOption || this.showRenameOption || this.showDeleteOption) {
       menuItems += `<div style="height: 1px; background: var(--divider-color, rgba(0, 0, 0, 0.1)); margin: 4px 0;"></div>`;
     }
     

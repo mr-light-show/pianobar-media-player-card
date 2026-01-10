@@ -1,5 +1,6 @@
 import { LitElement, html, css, nothing, PropertyValues, TemplateResult, CSSResultGroup } from 'lit';
 import { property, state } from 'lit/decorators.js';
+import { render } from 'lit';
 
 export interface AnchorPosition {
   left: number;
@@ -26,12 +27,15 @@ export abstract class BasePopup extends LitElement {
   // Click outside handling
   protected ignoreNextClickOutside = false;
 
+  // Portal container for rendering outside card context
+  protected _portalContainer: HTMLDivElement | null = null;
+
   // Base styles that all popups share
   static get baseStyles(): CSSResultGroup {
     return css`
       :host {
         position: relative;
-        display: inline-block;
+        display: contents;
       }
 
       .backdrop {
@@ -71,6 +75,22 @@ export abstract class BasePopup extends LitElement {
   disconnectedCallback(): void {
     super.disconnectedCallback();
     document.removeEventListener('click', this.handleClickOutside);
+    this._removePortal();
+  }
+
+  // Portal management methods
+  protected _createPortal(): void {
+    if (this._portalContainer) return;
+    this._portalContainer = document.createElement('div');
+    this._portalContainer.className = 'pmc-popup-portal';
+    document.body.appendChild(this._portalContainer);
+  }
+
+  protected _removePortal(): void {
+    if (this._portalContainer) {
+      this._portalContainer.remove();
+      this._portalContainer = null;
+    }
   }
 
   firstUpdated(): void {
@@ -86,6 +106,15 @@ export abstract class BasePopup extends LitElement {
     if (changedProperties.has('anchorPosition') && this.isOpen && this.anchorPosition) {
       this.updatePosition();
     }
+    // Update portal content when isOpen state changes
+    if (changedProperties.has('isOpen')) {
+      this._updatePortalContent();
+    }
+    // Always refresh portal content when popup is open and any state changes
+    // This ensures subclass @state() changes are reflected in the portal
+    if (this.isOpen && changedProperties.size > 0 && !changedProperties.has('isOpen')) {
+      this._updatePortalContent();
+    }
   }
 
   // Click outside handler
@@ -94,7 +123,10 @@ export abstract class BasePopup extends LitElement {
       this.ignoreNextClickOutside = false;
       return;
     }
-    if (this.isOpen && !event.composedPath().includes(this)) {
+    const path = event.composedPath();
+    const includesThis = path.includes(this);
+    const includesPortal = this._portalContainer ? path.includes(this._portalContainer) : false;
+    if (this.isOpen && !includesThis && !includesPortal) {
       this.closePopup();
     }
   }
@@ -111,13 +143,16 @@ export abstract class BasePopup extends LitElement {
   protected openPopup(): void {
     if (!this.disabled) {
       this.updatePosition();
+      this._createPortal();
       this.isOpen = true;
+      this._updatePortalContent();
     }
   }
 
   // Close popup and dispatch event
   protected closePopup(): void {
     this.isOpen = false;
+    this._updatePortalContent();
     this.dispatchEvent(new CustomEvent('popup-closed', { bubbles: true, composed: true }));
   }
 
@@ -167,13 +202,6 @@ export abstract class BasePopup extends LitElement {
     };
   }
 
-  // Render backdrop
-  protected renderBackdrop(): TemplateResult | typeof nothing {
-    return this.isOpen 
-      ? html`<div class="backdrop" @click=${this.closePopup}></div>` 
-      : nothing;
-  }
-
   // Abstract method: subclasses must implement popup content
   protected abstract renderPopupContent(): TemplateResult;
 
@@ -190,23 +218,85 @@ export abstract class BasePopup extends LitElement {
     };
   }
 
-  // Default render (can be overridden for custom structure)
-  render(): TemplateResult | typeof nothing {
-    if (!this.externalOpen) {
-      return nothing;
+  // Get base CSS styles as string for portal
+  protected getBaseStylesString(): string {
+    return `
+      .pmc-popup-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 99998;
+      }
+
+      .pmc-popup-container {
+        position: fixed;
+        background: var(--card-background-color, #fff);
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        z-index: 99999;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.2s, visibility 0.2s;
+      }
+
+      .pmc-popup-container.open {
+        opacity: 1;
+        visibility: visible;
+      }
+    `;
+  }
+
+  // Get component-specific CSS styles as string (can be overridden)
+  protected getComponentStylesString(): string {
+    return '';
+  }
+
+  // Update portal content
+  protected _updatePortalContent(): void {
+    if (!this._portalContainer) return;
+
+    if (!this.isOpen) {
+      this._portalContainer.innerHTML = '';
+      return;
     }
 
-    const classes = `popup-container ${this.isOpen ? 'open' : ''} ${this.getPopupClasses()}`.trim();
-    const styles = Object.entries(this.getPopupStyles())
-      .map(([key, value]) => `${key}: ${value}`)
-      .join('; ');
+    // Render backdrop
+    const backdrop = document.createElement('div');
+    backdrop.className = 'pmc-popup-backdrop';
+    backdrop.addEventListener('click', () => this.closePopup());
 
-    return html`
-      ${this.renderBackdrop()}
-      <div class="${classes}" style="${styles}">
-        ${this.renderPopupContent()}
-      </div>
-    `;
+    // Render popup container
+    const container = document.createElement('div');
+    const classes = `pmc-popup-container ${this.isOpen ? 'open' : ''} ${this.getPopupClasses()}`.trim();
+    container.className = classes;
+    
+    const styles = this.getPopupStyles();
+    Object.entries(styles).forEach(([key, value]) => {
+      container.style.setProperty(key, value);
+    });
+
+    // Render content (use a temporary lit template)
+    const content = this.renderPopupContent();
+    render(content, container);
+
+    // Create styles element
+    const styleEl = document.createElement('style');
+    const componentStyles = this.getComponentStylesString();
+    styleEl.textContent = this.getBaseStylesString() + componentStyles;
+
+    // Clear and populate portal
+    this._portalContainer.innerHTML = '';
+    this._portalContainer.appendChild(styleEl);
+    this._portalContainer.appendChild(backdrop);
+    this._portalContainer.appendChild(container);
+  }
+
+  // Default render (just nothing - portal handles all rendering)
+  render(): TemplateResult | typeof nothing {
+    // Portal handles all rendering, so we return nothing from the component itself
+    return nothing;
   }
 }
 

@@ -143,6 +143,122 @@ export class UpcomingSongsPopup extends BasePopup {
     return { width: menuWidth, height: menuHeight };
   }
 
+  protected getComponentStylesString(): string {
+    return `
+      .pmc-popup-container {
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 300px;
+        max-width: 400px;
+        max-height: calc(100vh - 100px);
+        overflow-y: auto;
+      }
+
+      .popup-header {
+        padding: 8px 12px;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--primary-text-color);
+        border-bottom: 1px solid var(--divider-color, rgba(0, 0, 0, 0.1));
+        margin-bottom: 4px;
+      }
+
+      .song-item {
+        display: flex;
+        gap: 12px;
+        padding: 8px;
+        border-radius: 8px;
+        transition: background-color 0.2s;
+      }
+
+      .song-item:hover {
+        background: var(--secondary-background-color, rgba(0, 0, 0, 0.05));
+      }
+
+      .song-artwork {
+        width: 48px;
+        height: 48px;
+        border-radius: 4px;
+        object-fit: cover;
+        flex-shrink: 0;
+        background: var(--secondary-background-color, rgba(0, 0, 0, 0.05));
+      }
+
+      .song-artwork-placeholder {
+        width: 48px;
+        height: 48px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--secondary-background-color, rgba(0, 0, 0, 0.05));
+        color: var(--secondary-text-color);
+        flex-shrink: 0;
+      }
+
+      .song-artwork-placeholder ha-icon {
+        --mdc-icon-size: 24px;
+      }
+
+      .song-info {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .song-title {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--primary-text-color);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .song-artist {
+        font-size: 12px;
+        color: var(--secondary-text-color);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .song-station {
+        font-size: 11px;
+        color: var(--secondary-text-color);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .song-station ha-icon {
+        --mdc-icon-size: 12px;
+      }
+
+      .song-rating {
+        display: flex;
+        align-items: center;
+        margin-top: 2px;
+      }
+
+      .song-rating ha-icon {
+        --mdc-icon-size: 16px;
+        color: var(--primary-color);
+      }
+
+      .no-songs {
+        padding: 24px;
+        text-align: center;
+        color: var(--secondary-text-color);
+        font-size: 14px;
+      }
+    `;
+  }
+
   protected renderPopupContent(): TemplateResult {
     return html`
       <div class="popup-header">Upcoming Songs</div>

@@ -1,5 +1,6 @@
-import { LitElement, html, css, nothing, PropertyValues } from 'lit';
+import { html, css, nothing, PropertyValues, TemplateResult, CSSResultGroup } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
+import { BasePopup } from './base-popup';
 
 interface StationMode {
   id: number;
@@ -9,23 +10,18 @@ interface StationMode {
 }
 
 @customElement('pmc-station-mode-popup')
-export class StationModePopup extends LitElement {
+export class StationModePopup extends BasePopup {
   @property({ type: String }) currentStationId = '';
   @property({ type: String }) currentStationName = '';
   @property({ type: Array }) modes: StationMode[] = [];
   @property({ type: Boolean }) loading = false;
-  @property({ type: Boolean }) disabled = false;
-  @property({ type: Boolean }) externalOpen = false;
-  @property({ type: Object }) anchorPosition?: { left: number; top: number; bottom: number; right: number };
 
-  @state() private _menuOpen = false;
-  @state() private _menuTop = 0;
-  @state() private _menuLeft = 0;
   @state() private _selectedModeId: number | null = null;
 
-  private _ignoreNextClickOutside = false;
-
-  static styles = css`
+  static get styles(): CSSResultGroup {
+    return [
+      BasePopup.baseStyles,
+      css`
     :host {
       position: relative;
       display: inline-block;
@@ -193,54 +189,47 @@ export class StationModePopup extends LitElement {
     .no-modes {
       padding: 24px;
       text-align: center;
-      color: var(--secondary-text-color);
-      font-size: 14px;
-    }
+        color: var(--secondary-text-color);
+        font-size: 14px;
+      }
 
-    .backdrop {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 99998;
-    }
-  `;
-
-  connectedCallback() {
-    super.connectedCallback();
-    this._handleClickOutside = this._handleClickOutside.bind(this);
-    document.addEventListener('click', this._handleClickOutside);
+      .backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 99998;
+      }
+    `
+    ];
   }
 
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    document.removeEventListener('click', this._handleClickOutside);
+  protected getPopupDimensions(): { width: number; height: number } {
+    const menuWidth = 400;
+    const estimatedHeight = this.modes.length * 80 + 150;
+    const maxMenuHeight = window.innerHeight - 100;
+    const menuHeight = Math.min(estimatedHeight, maxMenuHeight);
+    return { width: menuWidth, height: menuHeight };
   }
 
-  private _handleClickOutside(event: MouseEvent) {
-    if (this._ignoreNextClickOutside) {
-      this._ignoreNextClickOutside = false;
-      return;
+  // Override to pre-select active mode when opening
+  protected openPopup(): void {
+    const activeMode = this.modes.find(m => m.active);
+    if (activeMode && this._selectedModeId === null) {
+      this._selectedModeId = activeMode.id;
     }
-    if (this._menuOpen && !event.composedPath().includes(this)) {
-      this._closePopup();
-    }
+    super.openPopup();
   }
 
-  firstUpdated() {
-    if (this.externalOpen && !this._menuOpen) {
-      this._openPopupExternal();
-    }
+  // Override to reset selection when closing
+  protected closePopup(): void {
+    this._selectedModeId = null;
+    super.closePopup();
   }
 
   updated(changedProperties: PropertyValues) {
-    if (changedProperties.has('externalOpen') && this.externalOpen && !this._menuOpen) {
-      this._openPopupExternal();
-    }
-    if (changedProperties.has('anchorPosition') && this._menuOpen && this.anchorPosition) {
-      this._updateMenuPosition();
-    }
+    super.updated(changedProperties);
     // Reset selected mode when modes change
     if (changedProperties.has('modes') && this.modes.length > 0) {
       const activeMode = this.modes.find(m => m.active);
@@ -250,58 +239,161 @@ export class StationModePopup extends LitElement {
     }
   }
 
-  private _openPopupExternal() {
-    this._ignoreNextClickOutside = true;
-    requestAnimationFrame(() => {
-      this._openPopup();
-    });
-  }
-
-  private _openPopup() {
-    if (!this.disabled) {
-      this._updateMenuPosition();
-      // Pre-select the active mode
-      const activeMode = this.modes.find(m => m.active);
-      if (activeMode) {
-        this._selectedModeId = activeMode.id;
-      }
-      this._menuOpen = true;
-    }
-  }
-
-  private _closePopup() {
-    this._menuOpen = false;
-    this._selectedModeId = null;
-    this.dispatchEvent(new CustomEvent('popup-closed', { bubbles: true, composed: true }));
-  }
-
-  private _updateMenuPosition() {
-    if (this.anchorPosition) {
-      const menuWidth = 400;
-      const estimatedHeight = this.modes.length * 80 + 150;
-      const maxMenuHeight = window.innerHeight - 100; // Account for max-height: calc(100vh - 100px)
-      const menuHeight = Math.min(estimatedHeight, maxMenuHeight);
-      const padding = 8;
-      const gap = 4;
-
-      // Position below anchor by default
-      let left = this.anchorPosition.left;
-      let top = this.anchorPosition.bottom + gap;
-
-      // Clamp to screen edges
-      left = Math.max(padding, Math.min(left, window.innerWidth - menuWidth - padding));
-      
-      // If not enough space below, show above
-      if (top + menuHeight > window.innerHeight - padding) {
-        top = this.anchorPosition.top - gap - menuHeight;
-        top = Math.max(padding, top);
-      } else {
-        top = Math.min(top, window.innerHeight - menuHeight - padding);
+  protected getComponentStylesString(): string {
+    return `
+      .pmc-popup-container {
+        min-width: 350px;
+        max-width: 500px;
+        max-height: calc(100vh - 100px);
+        overflow-y: auto;
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
       }
 
-      this._menuLeft = left;
-      this._menuTop = top;
-    }
+      .popup-header {
+        padding: 12px 16px;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--primary-text-color);
+        border-bottom: 1px solid var(--divider-color, rgba(0, 0, 0, 0.1));
+        margin-bottom: 8px;
+      }
+
+      .info-note {
+        padding: 12px;
+        background: var(--secondary-background-color, rgba(0, 0, 0, 0.05));
+        border-radius: 8px;
+        font-size: 13px;
+        color: var(--secondary-text-color);
+        line-height: 1.4;
+        margin-bottom: 12px;
+      }
+
+      .modes-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      .mode-item {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 12px;
+        background: transparent;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        user-select: none;
+        border: 2px solid transparent;
+      }
+
+      .mode-item:hover {
+        background: var(--secondary-background-color, rgba(0, 0, 0, 0.05));
+      }
+
+      .mode-item.active {
+        border-color: var(--primary-color);
+        background: rgba(118, 75, 162, 0.1);
+      }
+
+      .mode-item.selected {
+        border-color: var(--primary-color);
+      }
+
+      .mode-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .mode-header input[type="radio"] {
+        margin: 0;
+        cursor: pointer;
+      }
+
+      .mode-name {
+        font-size: 15px;
+        font-weight: 500;
+        color: var(--primary-text-color);
+        flex: 1;
+      }
+
+      .mode-active-badge {
+        padding: 4px 10px;
+        background: var(--primary-color);
+        color: white;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+
+      .mode-description {
+        font-size: 13px;
+        color: var(--secondary-text-color);
+        line-height: 1.4;
+        margin-left: 32px;
+      }
+
+      .popup-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding-top: 8px;
+        border-top: 1px solid var(--divider-color, rgba(0, 0, 0, 0.1));
+      }
+
+      .popup-footer button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .popup-footer button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .button-cancel {
+        background: transparent;
+        color: var(--primary-text-color);
+      }
+
+      .button-cancel:hover:not(:disabled) {
+        background: var(--secondary-background-color, rgba(0, 0, 0, 0.05));
+      }
+
+      .button-confirm {
+        background: var(--primary-color);
+        color: white;
+      }
+
+      .button-confirm:hover:not(:disabled) {
+        opacity: 0.9;
+      }
+
+      .loading {
+        padding: 24px;
+        text-align: center;
+        color: var(--secondary-text-color);
+        font-size: 14px;
+      }
+
+      .no-modes {
+        padding: 24px;
+        text-align: center;
+        color: var(--secondary-text-color);
+        font-size: 14px;
+      }
+    `;
   }
 
   private _handleModeSelect(modeId: number) {
@@ -318,71 +410,61 @@ export class StationModePopup extends LitElement {
           modeId: this._selectedModeId
         }
       }));
-      this._closePopup();
+      this.closePopup();
     }
   }
 
-  render() {
-    if (!this.externalOpen) {
-      return nothing;
-    }
-
+  protected renderPopupContent(): TemplateResult {
     return html`
-      ${this._menuOpen ? html`<div class="backdrop" @click=${this._closePopup}></div>` : nothing}
-      <div
-        class="menu-popup ${this._menuOpen ? 'open' : ''}"
-        style="left: ${this._menuLeft}px; top: ${this._menuTop}px;"
-      >
-        <div class="popup-header">
-          ${this.currentStationName ? `Station Mode: ${this.currentStationName}` : 'Station Mode'}
-        </div>
-        
-        ${this.loading
-          ? html`<div class="loading">Loading modes...</div>`
-          : this.modes.length === 0
-            ? html`<div class="no-modes">No modes available</div>`
-            : html`
-                <div class="info-note">
-                  Note: Changing the station mode will restart playback.
-                </div>
-                
-                <div class="modes-list">
-                  ${this.modes.map(mode => html`
-                    <div 
-                      class="mode-item ${mode.active ? 'active' : ''} ${this._selectedModeId === mode.id ? 'selected' : ''}"
-                      @click=${() => this._handleModeSelect(mode.id)}
-                    >
-                      <div class="mode-header">
-                        <input
-                          type="radio"
-                          name="mode-select"
-                          .value=${mode.id}
-                          .checked=${this._selectedModeId === mode.id}
-                          @change=${() => this._handleModeSelect(mode.id)}
-                        >
-                        <span class="mode-name">${mode.name}</span>
-                        ${mode.active ? html`<span class="mode-active-badge">Active</span>` : nothing}
-                      </div>
-                      <div class="mode-description">${mode.description}</div>
-                    </div>
-                  `)}
-                </div>
-                
-                <div class="popup-footer">
-                  <button class="button-cancel" @click=${this._closePopup}>
-                    Cancel
-                  </button>
-                  <button 
-                    class="button-confirm"
-                    ?disabled=${this._selectedModeId === null}
-                    @click=${this._handleSetMode}
-                  >
-                    Set Mode
-                  </button>
-                </div>
-              `
-        }
+      <div class="popup-header">
+        ${this.currentStationName ? `Station Mode: ${this.currentStationName}` : 'Station Mode'}
       </div>
+      
+      ${this.loading
+        ? html`<div class="loading">Loading modes...</div>`
+        : this.modes.length === 0
+          ? html`<div class="no-modes">No modes available</div>`
+          : html`
+              <div class="info-note">
+                Note: Changing the station mode will restart playback.
+              </div>
+              
+              <div class="modes-list">
+                ${this.modes.map(mode => html`
+                  <div 
+                    class="mode-item ${mode.active ? 'active' : ''} ${this._selectedModeId === mode.id ? 'selected' : ''}"
+                    @click=${() => this._handleModeSelect(mode.id)}
+                  >
+                    <div class="mode-header">
+                      <input
+                        type="radio"
+                        name="mode-select"
+                        .value=${mode.id}
+                        .checked=${this._selectedModeId === mode.id}
+                        @change=${() => this._handleModeSelect(mode.id)}
+                      >
+                      <span class="mode-name">${mode.name}</span>
+                      ${mode.active ? html`<span class="mode-active-badge">Active</span>` : nothing}
+                    </div>
+                    <div class="mode-description">${mode.description}</div>
+                  </div>
+                `)}
+              </div>
+              
+              <div class="popup-footer">
+                <button class="button-cancel" @click=${() => this.closePopup()}>
+                  Cancel
+                </button>
+                <button 
+                  class="button-confirm"
+                  ?disabled=${this._selectedModeId === null}
+                  @click=${() => this._handleSetMode()}
+                >
+                  Set Mode
+                </button>
+              </div>
+            `
+      }
     `;
   }
 }

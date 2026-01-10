@@ -112,6 +112,65 @@ export class SongActionsMenu extends BasePopup {
     return { width: menuWidth, height: menuHeight };
   }
 
+  protected getComponentStylesString(): string {
+    return `
+      .pmc-popup-container {
+        padding: 4px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 160px;
+        max-height: calc(100vh - 100px);
+        overflow-y: auto;
+        transform: translateX(-50%);
+      }
+
+      .action-button {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 6px 16px;
+        border: none;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--primary-text-color);
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: left;
+        font-size: 14px;
+        width: 100%;
+      }
+
+      .action-button:hover {
+        background: var(--secondary-background-color, rgba(0, 0, 0, 0.05));
+      }
+
+      .action-button.love:hover {
+        background: rgba(76, 175, 80, 0.15);
+        color: #4caf50;
+      }
+
+      .action-button.love.active {
+        background: rgba(76, 175, 80, 0.15);
+        color: #4caf50;
+      }
+
+      .action-button.ban:hover {
+        background: rgba(244, 67, 54, 0.15);
+        color: #f44336;
+      }
+
+      .action-button.tired:hover {
+        background: rgba(255, 152, 0, 0.15);
+        color: #ff9800;
+      }
+
+      .action-button ha-icon {
+        --mdc-icon-size: 20px;
+      }
+    `;
+  }
+
   private toggleMenu(event: Event): void {
     event.stopPropagation();
     if (this.isOpen) {
@@ -162,20 +221,20 @@ export class SongActionsMenu extends BasePopup {
       ${this.showLove ? html`
         <button
           class="action-button love ${isLoved ? 'active' : ''}"
-          @click=${this.handleLove}
+          @click=${() => this.handleLove()}
         >
           <ha-icon icon="mdi:thumb-up"></ha-icon>
           <span>Love Song</span>
         </button>
       ` : nothing}
       ${this.showBan ? html`
-        <button class="action-button ban" @click=${this.handleBan}>
+        <button class="action-button ban" @click=${() => this.handleBan()}>
           <ha-icon icon="mdi:thumb-down"></ha-icon>
           <span>Ban Song</span>
         </button>
       ` : nothing}
       ${this.showTired ? html`
-        <button class="action-button tired" @click=${this.handleTired}>
+        <button class="action-button tired" @click=${() => this.handleTired()}>
           <ha-icon icon="mdi:sleep"></ha-icon>
           <span>Snooze (1 month)</span>
         </button>
@@ -186,30 +245,21 @@ export class SongActionsMenu extends BasePopup {
   render(): TemplateResult | typeof nothing {
     const isLoved = this.rating === 1;
 
-    // If popup only mode, use base class render
+    // If popup only mode, use base class render (portal handles everything)
     if (this.popupOnly) {
       return super.render();
     }
 
-    // Otherwise, render button + popup
+    // Otherwise, render just the button (portal handles popup)
     return html`
-      ${this.renderBackdrop()}
-      ${html`
-        <button
-          class="trigger-button ${isLoved ? 'loved' : ''}"
-          @click=${this.toggleMenu}
-          ?disabled=${this.disabled}
-          title="${isLoved ? 'Loved' : 'Song actions'}"
-        >
-          <ha-icon icon="${isLoved ? 'mdi:thumb-up' : 'mdi:thumbs-up-down-outline'}"></ha-icon>
-        </button>
-      `}
-      <div 
-        class="popup-container ${this.isOpen ? 'open' : ''}"
-        style="left: ${this.left}px; top: ${this.top}px;"
+      <button
+        class="trigger-button ${isLoved ? 'loved' : ''}"
+        @click=${this.toggleMenu}
+        ?disabled=${this.disabled}
+        title="${isLoved ? 'Loved' : 'Song actions'}"
       >
-        ${this.renderPopupContent()}
-      </div>
+        <ha-icon icon="${isLoved ? 'mdi:thumb-up' : 'mdi:thumbs-up-down-outline'}"></ha-icon>
+      </button>
     `;
   }
 }

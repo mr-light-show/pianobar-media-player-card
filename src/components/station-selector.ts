@@ -52,7 +52,6 @@ export class StationSelector extends BasePopup {
           max-width: 300px;
           max-height: calc(100vh - 100px);
           overflow-y: auto;
-          transform: translateX(-50%);
         }
 
         .station-button {
@@ -114,6 +113,103 @@ export class StationSelector extends BasePopup {
     const itemHeight = 36;
     const menuHeight = Math.min(this.stations.length * itemHeight + 8, window.innerHeight - 100);
     return { width: menuWidth, height: menuHeight };
+  }
+
+  // Override to properly center popup while respecting screen boundaries
+  protected calculatePosition(dimensions: { width: number; height: number }): { left: number; top: number } {
+    if (!this.anchorPosition) {
+      return { left: 0, top: 0 };
+    }
+
+    const { width, height } = dimensions;
+    const padding = 8;
+    const gap = 4;
+
+    // For centered popup: left should be center minus half width
+    // anchorPosition.left is already the center of the button
+    let left = this.anchorPosition.left - width / 2;
+
+    // Clamp to screen edges
+    left = Math.max(padding, Math.min(left, window.innerWidth - width - padding));
+
+    // Position below anchor by default
+    let top = this.anchorPosition.bottom + gap;
+
+    // If not enough space below, show above
+    if (top + height > window.innerHeight - padding) {
+      top = this.anchorPosition.top - gap - height;
+      top = Math.max(padding, top);
+    } else {
+      top = Math.min(top, window.innerHeight - height - padding);
+    }
+
+    return { left, top };
+  }
+
+  protected getComponentStylesString(): string {
+    return `
+      .pmc-popup-container {
+        padding: 4px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 200px;
+        max-width: 300px;
+        max-height: calc(100vh - 100px);
+        overflow-y: auto;
+      }
+
+      .station-button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border: none;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--primary-text-color);
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: left;
+        font-size: 14px;
+        width: 100%;
+      }
+
+      .station-button:hover {
+        background: var(--secondary-background-color, rgba(0, 0, 0, 0.05));
+      }
+
+      .station-button.active {
+        background: var(--primary-color);
+        color: var(--text-primary-color, #fff);
+      }
+
+      .station-button.active:hover {
+        background: var(--primary-color);
+      }
+
+      .station-button ha-icon {
+        --mdc-icon-size: 20px;
+        flex-shrink: 0;
+      }
+
+      .station-button .station-text {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .station-button .quickmix-badge {
+        --mdc-icon-size: 16px;
+        flex-shrink: 0;
+        color: var(--primary-color);
+      }
+
+      .station-button.active .quickmix-badge {
+        color: var(--text-primary-color, #fff);
+      }
+    `;
   }
 
   private toggleMenu(event: Event): void {
@@ -189,30 +285,21 @@ export class StationSelector extends BasePopup {
     // Determine icon: shuffle for QuickMix, radio otherwise
     const icon = isQuickMix ? 'mdi:shuffle' : 'mdi:radio';
 
-    // If popup only mode, use base class render
+    // If popup only mode, use base class render (portal handles everything)
     if (this.popupOnly) {
       return super.render();
     }
 
-    // Otherwise, render button + popup
+    // Otherwise, render just the button (portal handles popup)
     return html`
-      ${this.renderBackdrop()}
-      ${html`
-        <button
-          class="trigger-button"
-          @click=${this.toggleMenu}
-          ?disabled=${this.disabled || this.stations.length === 0}
-          title="${displayName}"
-        >
-          <ha-icon icon="${icon}"></ha-icon>
-        </button>
-      `}
-      <div
-        class="popup-container ${this.isOpen ? 'open' : ''}"
-        style="left: ${this.left}px; top: ${this.top}px;"
+      <button
+        class="trigger-button"
+        @click=${this.toggleMenu}
+        ?disabled=${this.disabled || this.stations.length === 0}
+        title="${displayName}"
       >
-        ${this.renderPopupContent()}
-      </div>
+        <ha-icon icon="${icon}"></ha-icon>
+      </button>
     `;
   }
 }

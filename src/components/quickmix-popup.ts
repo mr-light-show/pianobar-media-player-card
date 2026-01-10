@@ -154,6 +154,133 @@ export class QuickMixPopup extends BasePopup {
     return { width: menuWidth, height: menuHeight };
   }
 
+  protected getComponentStylesString(): string {
+    return `
+      .pmc-popup-container {
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 280px;
+        max-width: 350px;
+        max-height: calc(100vh - 100px);
+        overflow-y: auto;
+        transform: translateX(-50%);
+      }
+
+      .header {
+        padding: 12px 8px 8px;
+        font-weight: 600;
+        font-size: 16px;
+        color: var(--primary-text-color);
+        border-bottom: 1px solid var(--divider-color, rgba(0, 0, 0, 0.1));
+      }
+
+      .list-container {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 4px 0;
+      }
+
+      .list-item {
+        display: flex;
+        align-items: center;
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: transparent;
+        transition: background 0.2s;
+        cursor: pointer;
+      }
+
+      .list-item:hover:not(.disabled) {
+        background: var(--secondary-background-color, rgba(0, 0, 0, 0.05));
+      }
+
+      .list-item.disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .list-item label {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        cursor: pointer;
+      }
+
+      .list-item.disabled label {
+        cursor: not-allowed;
+      }
+
+      .list-item input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        margin: 0;
+        flex-shrink: 0;
+      }
+
+      .list-item.disabled input[type="checkbox"] {
+        cursor: not-allowed;
+      }
+
+      .item-name {
+        flex: 1;
+        font-size: 14px;
+        color: var(--primary-text-color);
+      }
+
+      .footer {
+        display: flex;
+        gap: 8px;
+        padding: 8px;
+        border-top: 1px solid var(--divider-color, rgba(0, 0, 0, 0.1));
+        justify-content: flex-end;
+      }
+
+      .footer button {
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: none;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .footer button.cancel {
+        background: transparent;
+        color: var(--primary-text-color);
+      }
+
+      .footer button.cancel:hover {
+        background: var(--secondary-background-color, rgba(0, 0, 0, 0.05));
+      }
+
+      .footer button.save {
+        background: var(--primary-color);
+        color: var(--text-primary-color, #fff);
+      }
+
+      .footer button.save:hover {
+        opacity: 0.9;
+      }
+
+      .footer button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .no-stations {
+        padding: 16px;
+        text-align: center;
+        color: var(--secondary-text-color);
+      }
+    `;
+  }
+
   private initializeSelection(): void {
     this.selectedStationIds = new Set(
       this.stations
@@ -216,10 +343,10 @@ export class QuickMixPopup extends BasePopup {
             </div>
             
             <div class="footer">
-              <button class="cancel" @click=${this.handleCancel} ?disabled=${this.disabled}>
+              <button class="cancel" @click=${() => this.handleCancel()} ?disabled=${this.disabled}>
                 Cancel
               </button>
-              <button class="save" @click=${this.handleSave} ?disabled=${this.disabled}>
+              <button class="save" @click=${() => this.handleSave()} ?disabled=${this.disabled}>
                 Save
               </button>
             </div>
