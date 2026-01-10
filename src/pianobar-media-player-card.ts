@@ -1,6 +1,7 @@
 import { LitElement, html, TemplateResult, PropertyValues, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { styleMap } from 'lit/directives/style-map.js';
+import { createRef, ref, Ref } from 'lit/directives/ref.js';
 import { cardStyles } from './styles';
 import { resolveConfig } from './modes';
 import { extractColors, extractRegionalColors, ExtractedColors } from './utils/color-extractor';
@@ -83,6 +84,8 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   @state() private _openCreateStationModal = false;
   @state() private _genreCategories: GenreCategory[] = [];
   @state() private _genreLoading = false;
+  
+  private _createStationModalRef: Ref<any> = createRef();
 
   private _resizeObserver?: ResizeObserver;
 
@@ -283,18 +286,27 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   }
 
   private async _handleLoveSong(): Promise<void> {
-    if (!this.hass) return;
-    await this.hass.callService('pianobar', 'love_song', {});
+    const entity = this._getEntity();
+    if (!entity || !this.hass) return;
+    await this.hass.callService('pianobar', 'love_song', {
+      entity_id: entity.entity_id
+    });
   }
 
   private async _handleBanSong(): Promise<void> {
-    if (!this.hass) return;
-    await this.hass.callService('pianobar', 'ban_song', {});
+    const entity = this._getEntity();
+    if (!entity || !this.hass) return;
+    await this.hass.callService('pianobar', 'ban_song', {
+      entity_id: entity.entity_id
+    });
   }
 
   private async _handleTiredSong(): Promise<void> {
-    if (!this.hass) return;
-    await this.hass.callService('pianobar', 'tired_of_song', {});
+    const entity = this._getEntity();
+    if (!entity || !this.hass) return;
+    await this.hass.callService('pianobar', 'tired_of_song', {
+      entity_id: entity.entity_id
+    });
   }
 
   private async _handleStationChange(ev: CustomEvent): Promise<void> {
@@ -585,7 +597,9 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         type: 'call_service',
         domain: 'pianobar',
         service: 'explain_song',
-        service_data: {},
+        service_data: {
+          entity_id: entity.entity_id
+        },
         return_response: true,
       }) as any;
 
@@ -665,7 +679,9 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         type: 'call_service',
         domain: 'pianobar',
         service: 'get_upcoming',
-        service_data: {},
+        service_data: {
+          entity_id: entity.entity_id
+        },
         return_response: true,
       }) as any;
 
@@ -716,6 +732,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         domain: 'pianobar',
         service: 'get_station_modes',
         service_data: { 
+          entity_id: entity.entity_id,
           station_id: stationId
         },
         return_response: true,
@@ -757,6 +774,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         'pianobar',
         'set_station_mode',
         { 
+          entity_id: entity.entity_id,
           station_id: stationId,
           mode_id: modeId
         }
@@ -813,6 +831,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         'pianobar',
         'set_quick_mix',
         { 
+          entity_id: entity.entity_id,
           station_ids: stationIds
         }
       );
@@ -870,6 +889,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         'pianobar',
         'rename_station',
         { 
+          entity_id: entity.entity_id,
           station_id: stationId,
           name: newName
         }
@@ -933,6 +953,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         'pianobar',
         'delete_station',
         { 
+          entity_id: entity.entity_id,
           station_id: stationId
         }
       );
@@ -969,13 +990,11 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const entity = this._getEntity();
     if (!entity || !this.hass) return;
 
-    // Force close first to ensure clean state
-    this._openStationInfoPopup = false;
-    await this.updateComplete;
-
+    // Clear old data and set loading state BEFORE opening popup
+    this._stationInfo = null;
+    this._stationInfoLoading = true;
     this._popupAnchorPosition = e.detail?.anchorPosition;
     this._openStationInfoPopup = true;
-    this._stationInfoLoading = true;
 
     try {
       const stationId = entity.attributes.media_content_id as string;
@@ -988,6 +1007,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         domain: 'pianobar',
         service: 'get_station_info',
         service_data: { 
+          entity_id: entity.entity_id,
           station_id: stationId
         },
         return_response: true,
@@ -1033,6 +1053,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         'pianobar',
         'delete_seed',
         { 
+          entity_id: entity.entity_id,
           seed_id: seedId,
           seed_type: seedType,
           station_id: stationId
@@ -1077,6 +1098,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         'pianobar',
         'delete_feedback',
         { 
+          entity_id: entity.entity_id,
           feedback_id: feedbackId,
           station_id: stationId
         }
@@ -1141,10 +1163,15 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         domain: 'pianobar',
         service: 'search',
         service_data: { 
+          entity_id: entity.entity_id,
           query: query
         },
         return_response: true,
       }) as any;
+
+      console.log('Music search response:', response);
+      console.log('Response.response:', response?.response);
+      console.log('Categories:', response?.response?.categories);
 
       this._searchResults = {
         categories: response?.response?.categories || []
@@ -1177,6 +1204,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         'pianobar',
         'add_seed',
         { 
+          entity_id: entity.entity_id,
           music_id: musicId,
           station_id: stationId
         }
@@ -1244,6 +1272,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         'pianobar',
         'create_station',
         { 
+          entity_id: entity.entity_id,
           type: 'song'
         }
       );
@@ -1274,6 +1303,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         'pianobar',
         'create_station',
         { 
+          entity_id: entity.entity_id,
           type: 'artist'
         }
       );
@@ -1293,28 +1323,56 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   }
 
   private async _handleCreateStationSearch(e: CustomEvent): Promise<void> {
+    console.log('[CARD] _handleCreateStationSearch called with:', e.detail);
+    
     const entity = this._getEntity();
-    if (!entity || !this.hass) return;
+    if (!entity || !this.hass) {
+      console.log('[CARD] No entity or hass, returning');
+      return;
+    }
 
     const { query } = e.detail;
+    console.log('[CARD] Starting search for query:', query);
     this._searchLoading = true;
 
     try {
+      console.log('[CARD] Calling service with entity_id:', entity.entity_id);
       const response = await this.hass.connection.sendMessagePromise({
         type: 'call_service',
         domain: 'pianobar',
         service: 'search',
         service_data: { 
+          entity_id: entity.entity_id,
           query: query
         },
         return_response: true,
       }) as any;
 
+      console.log('[CARD] Create station search response:', response);
+      console.log('[CARD] Response.response:', response?.response);
+      console.log('[CARD] Categories:', response?.response?.categories);
+
       this._searchResults = {
         categories: response?.response?.categories || []
       };
+      
+      console.log('[CARD] Set _searchResults to:', this._searchResults);
+      console.log('[CARD] Triggering update...');
+      
+      // Directly update the modal if it exists
+      if (this._createStationModalRef.value) {
+        console.log('[CARD] Modal ref exists, updating searchResults and mode');
+        this._createStationModalRef.value.searchResults = this._searchResults;
+        this._createStationModalRef.value._mode = 'search-results';  // Trigger re-render by changing mode
+        this._createStationModalRef.value.requestUpdate();
+      } else {
+        console.log('[CARD] No modal ref, using requestUpdate on card');
+        this.requestUpdate(); // Force full re-render
+      }
+      
+      console.log('[CARD] After update, _searchResults is:', this._searchResults);
     } catch (err) {
-      console.error('Error searching:', err);
+      console.error('[CARD] Error searching:', err);
       this._searchResults = { categories: [] };
       this.dispatchEvent(new CustomEvent('hass-notification', {
         detail: { message: 'Error searching for music', duration: 3000 },
@@ -1323,6 +1381,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       }));
     } finally {
       this._searchLoading = false;
+      console.log('[CARD] Search loading finished');
     }
   }
 
@@ -1337,7 +1396,9 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         type: 'call_service',
         domain: 'pianobar',
         service: 'get_genres',
-        service_data: {},
+        service_data: {
+          entity_id: entity.entity_id
+        },
         return_response: true,
       }) as any;
 
@@ -1366,6 +1427,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         'pianobar',
         'create_station_from_music_id',
         { 
+          entity_id: entity.entity_id,
           music_id: musicId
         }
       );
@@ -1395,6 +1457,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         'pianobar',
         'add_shared_station',
         { 
+          entity_id: entity.entity_id,
           station_id: stationId
         }
       );
@@ -1569,9 +1632,8 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     `;
   }
 
-  private _renderStationInfoPopup(entity: HassEntity): TemplateResult | typeof nothing {
-    if (!this._openStationInfoPopup) return nothing;
-
+  private _renderStationInfoPopup(entity: HassEntity): TemplateResult {
+    // Always render the component so it can receive property updates
     const stations = (entity.attributes.stations as Station[]) || [];
     const stationId = entity.attributes.media_content_id as string;
     const currentStation = stations.find(s => s.id === stationId);
@@ -1625,6 +1687,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
     return html`
       <pmc-create-station-modal
+        ${ref(this._createStationModalRef)}
         .currentSongName=${currentSongName}
         .currentArtistName=${currentArtistName}
         .currentTrackToken=${currentTrackToken}
@@ -1632,7 +1695,6 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         .genreCategories=${this._genreCategories}
         .searchLoading=${this._searchLoading}
         .genreLoading=${this._genreLoading}
-        .disabled=${unavailable}
         .externalOpen=${this._openCreateStationModal}
         .anchorPosition=${this._popupAnchorPosition}
         @create-from-song=${this._handleCreateFromSong}

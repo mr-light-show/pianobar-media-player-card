@@ -1,6 +1,6 @@
-import { LitElement, html, css, nothing, PropertyValues } from 'lit';
+import { html, css, nothing, TemplateResult, CSSResultGroup } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { styleMap } from 'lit/directives/style-map.js';
+import { CenteredPopup } from './centered-popup';
 
 interface ArtistSeed {
   seedId: string;
@@ -33,297 +33,240 @@ interface StationInfo {
 }
 
 @customElement('pmc-station-info-popup')
-export class StationInfoPopup extends LitElement {
+export class StationInfoPopup extends CenteredPopup {
   @property({ type: String }) currentStationId = '';
   @property({ type: String }) currentStationName = '';
   @property({ type: Object }) stationInfo: StationInfo | null = null;
   @property({ type: Boolean }) infoLoading = false;
-  @property({ type: Boolean }) disabled = false;
-  @property({ type: Boolean }) externalOpen = false;
-  @property({ type: Object }) anchorPosition?: { left: number; top: number; bottom: number; right: number };
 
-  @state() private _dialogOpen = false;
-  @state() private _dialogTop = 0;
-  @state() private _dialogLeft = 0;
   @state() private _expandedSections: Set<string> = new Set(['artistSeeds', 'songSeeds', 'stationSeeds', 'feedback']);
 
-  private _ignoreNextClickOutside = false;
-
-  static styles = css`
-    :host {
-      position: relative;
-      display: inline-block;
-    }
-
-    .dialog {
-      position: fixed;
-      background: var(--pmc-card-background);
-      border-radius: 12px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      z-index: 99999;
-      width: 90vw;
-      max-width: 650px;
-      max-height: 80vh;
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity 0.2s, visibility 0.2s;
-      transform: translate(-50%, -50%);
-    }
-
-    .dialog.open {
-      opacity: 1;
-      visibility: visible;
-    }
-
-    .dialog-header {
-      padding: 16px 20px;
-      font-weight: 600;
-      font-size: 18px;
-      color: var(--primary-text-color);
-      border-bottom: 1px solid var(--pmc-divider);
-    }
-
-    .dialog-body {
-      padding: 12px;
-      overflow-y: auto;
-      flex: 1;
-    }
-
-    .seeds-container {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .section {
-      border-radius: 8px;
-      overflow: hidden;
-    }
-
-    .section-header {
-      display: flex;
-      align-items: center;
-      padding: 12px;
-      cursor: pointer;
-      background: var(--pmc-secondary-background);
-      transition: background 0.2s;
-      user-select: none;
-    }
-
-    .section-header:hover {
-      background: rgba(128, 128, 128, 0.15);
-    }
-
-    .chevron {
-      margin-right: 8px;
-      transition: transform 0.2s;
-      font-size: 20px;
-      color: var(--secondary-text-color);
-    }
-
-    .chevron.expanded {
-      transform: rotate(90deg);
-    }
-
-    .section-title {
-      font-size: 15px;
-      font-weight: 500;
-      color: var(--primary-text-color);
-      flex: 1;
-    }
-
-    .section-count {
-      font-size: 13px;
-      color: var(--secondary-text-color);
-      margin-left: 8px;
-    }
-
-    .section-content {
-      padding: 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .seed-item, .feedback-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 12px;
-      background: var(--pmc-secondary-background);
-      border-radius: 6px;
-    }
-
-    .seed-info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .seed-name, .feedback-title {
-      font-size: 14px;
-      color: var(--primary-text-color);
-      font-weight: 500;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .seed-artist, .feedback-artist {
-      font-size: 12px;
-      color: var(--secondary-text-color);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .feedback-icon {
-      font-size: 20px;
-      margin-right: 4px;
-    }
-
-    .feedback-icon.loved {
-      color: #4CAF50;
-    }
-
-    .feedback-icon.banned {
-      color: #F44336;
-    }
-
-    .delete-button {
-      padding: 6px 12px;
-      border: none;
-      border-radius: 6px;
-      background: rgba(244, 67, 54, 0.1);
-      color: #f44336;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 500;
-      transition: all 0.2s;
-    }
-
-    .delete-button:hover:not(:disabled) {
-      background: #f44336;
-      color: #fff;
-    }
-
-    .delete-button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    .no-items {
-      padding: 32px;
-      text-align: center;
-      color: var(--secondary-text-color);
-      font-size: 14px;
-    }
-
-    .loading {
-      padding: 32px;
-      text-align: center;
-      color: var(--secondary-text-color);
-    }
-
-    .dialog-footer {
-      display: flex;
-      gap: 8px;
-      padding: 16px 20px;
-      border-top: 1px solid var(--pmc-divider);
-      justify-content: flex-end;
-    }
-
-    .dialog-footer button {
-      padding: 8px 16px;
-      border-radius: 8px;
-      border: none;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .dialog-footer button.close {
-      background: var(--primary-color);
-      color: var(--text-primary-color);
-    }
-
-    .dialog-footer button.close:hover {
-      opacity: 0.9;
-    }
-
-    .backdrop {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 99998;
-    }
-  `;
-
-  connectedCallback() {
-    super.connectedCallback();
-    this._handleClickOutside = this._handleClickOutside.bind(this);
-    document.addEventListener('click', this._handleClickOutside);
+  static get styles(): CSSResultGroup {
+    return [
+      css`
+        :host {
+          position: relative;
+          display: inline-block;
+        }
+      `
+    ];
   }
 
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    document.removeEventListener('click', this._handleClickOutside);
+  protected getComponentStylesString(): string {
+    return `
+      .dialog {
+        position: fixed;
+        background: var(--pmc-card-background);
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        z-index: 99999;
+        width: 90vw;
+        max-width: 650px;
+        max-height: 80vh;
+      }
+
+      .dialog-header {
+        padding: 16px 20px;
+        font-weight: 600;
+        font-size: 18px;
+        color: var(--primary-text-color);
+        border-bottom: 1px solid var(--pmc-divider);
+      }
+
+      .dialog-body {
+        padding: 12px;
+        overflow-y: auto;
+        flex: 1;
+      }
+
+      .seeds-container {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .section {
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .section-header {
+        display: flex;
+        align-items: center;
+        padding: 12px;
+        cursor: pointer;
+        background: var(--pmc-secondary-background);
+        transition: background 0.2s;
+        user-select: none;
+      }
+
+      .section-header:hover {
+        background: rgba(128, 128, 128, 0.15);
+      }
+
+      .chevron {
+        margin-right: 8px;
+        transition: transform 0.2s;
+        font-size: 20px;
+        color: var(--secondary-text-color);
+      }
+
+      .chevron.expanded {
+        transform: rotate(90deg);
+      }
+
+      .section-title {
+        font-size: 15px;
+        font-weight: 500;
+        color: var(--primary-text-color);
+        flex: 1;
+      }
+
+      .section-count {
+        font-size: 13px;
+        color: var(--secondary-text-color);
+        margin-left: 8px;
+      }
+
+      .section-content {
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .seed-item, .feedback-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        background: var(--pmc-secondary-background);
+        border-radius: 6px;
+      }
+
+      .seed-info {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .seed-name, .feedback-title {
+        font-size: 14px;
+        color: var(--primary-text-color);
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .seed-artist, .feedback-artist {
+        font-size: 12px;
+        color: var(--secondary-text-color);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .feedback-icon {
+        font-size: 20px;
+        margin-right: 4px;
+      }
+
+      .feedback-icon.loved {
+        color: #4CAF50;
+      }
+
+      .feedback-icon.banned {
+        color: #F44336;
+      }
+
+      .delete-button {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 6px;
+        background: rgba(244, 67, 54, 0.1);
+        color: #f44336;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 500;
+        transition: all 0.2s;
+      }
+
+      .delete-button:hover:not(:disabled) {
+        background: #f44336;
+        color: #fff;
+      }
+
+      .delete-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .no-items {
+        padding: 32px;
+        text-align: center;
+        color: var(--secondary-text-color);
+        font-size: 14px;
+      }
+
+      .loading {
+        padding: 32px;
+        text-align: center;
+        color: var(--secondary-text-color);
+      }
+
+      .dialog-footer {
+        display: flex;
+        gap: 8px;
+        padding: 16px 20px;
+        border-top: 1px solid var(--pmc-divider);
+        justify-content: flex-end;
+      }
+
+      .dialog-footer button {
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: none;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .dialog-footer button.close {
+        background: var(--primary-color);
+        color: var(--text-primary-color);
+      }
+
+      .dialog-footer button.close:hover {
+        opacity: 0.9;
+      }
+    `;
   }
 
-  private _handleClickOutside(event: MouseEvent) {
-    if (this._ignoreNextClickOutside) {
-      this._ignoreNextClickOutside = false;
-      return;
-    }
-    if (this._dialogOpen && !event.composedPath().includes(this)) {
-      this._handleClose();
-    }
+  protected getPopupDimensions(): { width: number; height: number } {
+    return {
+      width: Math.min(650, window.innerWidth * 0.9),
+      height: Math.min(window.innerHeight * 0.8, 800)
+    };
   }
 
-  firstUpdated() {
-    if (this.externalOpen && !this._dialogOpen) {
-      this._openDialogExternal();
-    }
-  }
-
-  updated(changedProperties: PropertyValues) {
-    if (changedProperties.has('externalOpen') && this.externalOpen && !this._dialogOpen) {
-      this._openDialogExternal();
-    }
-  }
-
-  private _openDialogExternal() {
-    this._ignoreNextClickOutside = true;
-    requestAnimationFrame(() => {
-      this._openDialog();
-    });
-  }
-
-  private _openDialog() {
-    if (!this.disabled) {
-      this._updateDialogPosition();
-      this._dialogOpen = true;
-    }
-  }
-
-  private _updateDialogPosition() {
-    // Center dialog on screen
-    this._dialogLeft = window.innerWidth / 2;
-    this._dialogTop = window.innerHeight / 2;
+  // Override to reset expanded sections when closing
+  protected closePopup(): void {
+    this._expandedSections = new Set(['artistSeeds', 'songSeeds', 'stationSeeds', 'feedback']);
+    super.closePopup();
   }
 
   private _toggleSection(section: string) {
-    if (this._expandedSections.has(section)) {
-      this._expandedSections.delete(section);
+    const newSet = new Set(this._expandedSections);
+    if (newSet.has(section)) {
+      newSet.delete(section);
     } else {
-      this._expandedSections.add(section);
+      newSet.add(section);
     }
-    this.requestUpdate();
+    this._expandedSections = newSet;  // New reference triggers change detection
   }
 
   private _handleDeleteSeed(seedId: string, seedType: string) {
@@ -350,9 +293,7 @@ export class StationInfoPopup extends LitElement {
   }
 
   private _handleClose() {
-    this._dialogOpen = false;
-    this._expandedSections = new Set(['artistSeeds', 'songSeeds', 'stationSeeds', 'feedback']);
-    this.dispatchEvent(new CustomEvent('popup-closed', { bubbles: true, composed: true }));
+    this.closePopup();
   }
 
   private _renderSection(
@@ -377,9 +318,7 @@ export class StationInfoPopup extends LitElement {
     `;
   }
 
-  render() {
-    if (!this.externalOpen && !this._dialogOpen) return nothing;
-
+  protected renderPopupContent(): TemplateResult {
     const hasAnyItems = this.stationInfo && (
       this.stationInfo.artistSeeds.length > 0 ||
       this.stationInfo.songSeeds.length > 0 ||
@@ -388,21 +327,13 @@ export class StationInfoPopup extends LitElement {
     );
 
     return html`
-      <div class="backdrop" @click=${this._handleClickOutside}></div>
-      <div
-        class="dialog ${this._dialogOpen ? 'open' : ''}"
-        style=${styleMap({
-          left: `${this._dialogLeft}px`,
-          top: `${this._dialogTop}px`,
-        })}
-      >
-        <div class="dialog-header">Seeds: ${this.currentStationName}</div>
-        <div class="dialog-body">
-          ${this.infoLoading
-            ? html`<div class="loading">Loading station info...</div>`
-            : !hasAnyItems
-            ? html`<div class="no-items">No seeds or feedback available for this station.</div>`
-            : html`
+      <div class="dialog-header">Seeds: ${this.currentStationName}</div>
+      <div class="dialog-body">
+        ${this.infoLoading
+          ? html`<div class="loading">Loading station info...</div>`
+          : !hasAnyItems
+          ? html`<div class="no-items">No seeds or feedback available for this station.</div>`
+          : html`
                 <div class="seeds-container">
                   ${this._renderSection(
                     'artistSeeds',
@@ -490,10 +421,9 @@ export class StationInfoPopup extends LitElement {
                   )}
                 </div>
               `}
-        </div>
-        <div class="dialog-footer">
-          <button class="close" @click=${this._handleClose}>Close</button>
-        </div>
+      </div>
+      <div class="dialog-footer">
+        <button class="close" @click=${() => this._handleClose()}>Close</button>
       </div>
     `;
   }
