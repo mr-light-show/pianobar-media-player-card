@@ -602,21 +602,23 @@ export class CreateStationModal extends CenteredPopup {
         <div class="section-label">Or create from:</div>
 
         <div class="select-options">
-          <button class="option-button" @click=${() => this._handleSelectArtist()} ?disabled=${this.disabled || !this.currentTrackToken}>
-            <div class="option-main">
-              <ha-icon icon="mdi:account-music"></ha-icon>
-              <span>The current Artist</span>
-            </div>
-            ${this.currentArtistName ? html`<div class="option-detail">${this.currentArtistName}</div>` : nothing}
-          </button>
+          ${this.currentTrackToken ? html`
+            <button class="option-button" @click=${() => this._handleSelectArtist()} ?disabled=${this.disabled}>
+              <div class="option-main">
+                <ha-icon icon="mdi:account-music"></ha-icon>
+                <span>The current Artist</span>
+              </div>
+              ${this.currentArtistName ? html`<div class="option-detail">${this.currentArtistName}</div>` : nothing}
+            </button>
 
-          <button class="option-button" @click=${() => this._handleSelectSong()} ?disabled=${this.disabled || !this.currentTrackToken}>
-            <div class="option-main">
-              <ha-icon icon="mdi:music-note"></ha-icon>
-              <span>The current Song</span>
-            </div>
-            ${this.currentSongName ? html`<div class="option-detail">${this.currentSongName}</div>` : nothing}
-          </button>
+            <button class="option-button" @click=${() => this._handleSelectSong()} ?disabled=${this.disabled}>
+              <div class="option-main">
+                <ha-icon icon="mdi:music-note"></ha-icon>
+                <span>The current Song</span>
+              </div>
+              ${this.currentSongName ? html`<div class="option-detail">${this.currentSongName}</div>` : nothing}
+            </button>
+          ` : nothing}
 
           <button class="option-button" @click=${() => this._handleBrowseGenres()} ?disabled=${this.disabled}>
             <div class="option-main">

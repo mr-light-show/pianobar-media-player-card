@@ -369,10 +369,10 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         ${showTitle ? html`<p class="title">${title}</p>` : nothing}
         ${showArtist && artist ? html`<p class="artist">${artist}</p>` : nothing}
         ${showAlbum && album ? html`<p class="album">${album}</p>` : nothing}
-        ${showStationInfo && displayStationName ? html`
+        ${showStationInfo && (displayStationName || stations.length > 0) ? html`
           <p class="station-info clickable" @click=${this._handleOpenStationPopup}>
-            <ha-icon icon="${stationIcon}"></ha-icon>
-            <span>${displayStationName}</span>
+            <ha-icon icon="${displayStationName ? stationIcon : 'mdi:radio'}"></ha-icon>
+            <span>${displayStationName || 'Select station'}</span>
           </p>
         ` : nothing}
       </div>
@@ -538,8 +538,8 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const showStationInfo = isOn && hasStations && currentStation;
     // Show Add Music option if player is on and a station is selected
     const showAddMusic = isOn && hasStations && currentStation;
-    // Show Create Station option if player is on
-    const showCreateStation = isOn;
+    // Show Create Station option if stations exist
+    const showCreateStation = hasStations;
     // Show Rename option if player is on and we have renameable stations
     const showRename = isOn && hasStations;
     // Show Delete option if player is on and we have deleteable stations
@@ -1722,12 +1722,10 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const displayStationName = isQuickMix && songStationName ? songStationName : currentStationName;
     const stationIcon = isQuickMix ? 'mdi:shuffle' : 'mdi:radio';
 
-    if (!displayStationName) return nothing;
-
     return html`
       <div class="station-pill" @click=${this._handleOpenStationPopup}>
-        <ha-icon icon="${stationIcon}"></ha-icon>
-        <span>${displayStationName}</span>
+        <ha-icon icon="${displayStationName ? stationIcon : 'mdi:radio'}"></ha-icon>
+        <span>${displayStationName || 'Select station'}</span>
       </div>
     `;
   }
