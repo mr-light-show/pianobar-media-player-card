@@ -1,5 +1,9 @@
 # Pianobar Media Player Card
 
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
+[![GitHub Release](https://img.shields.io/github/release/mr-light-show/remote_pianobar_card.svg)](https://github.com/mr-light-show/remote_pianobar_card/releases)
+[![Validate](https://github.com/mr-light-show/remote_pianobar_card/actions/workflows/validate.yml/badge.svg)](https://github.com/mr-light-show/remote_pianobar_card/actions)
+
 A custom Home Assistant Lovelace card for the [pianobar-ha](https://github.com/khawes/pianobar-ha) media player integration with pandora station management support.
 
 ## Screenshots
