@@ -18,6 +18,7 @@ export class OverflowMenu extends LitElement {
   @property({ type: Boolean }) isOn = true;
   @property({ type: Boolean }) disabled = false;
   @property({ type: String }) buildTime = '';
+  @property({ type: Boolean }) usingSupportedActionsFallback = false;
 
   @state() private _menuOpen = false;
   @state() private _menuTop = 0;
@@ -466,7 +467,8 @@ export class OverflowMenu extends LitElement {
     `;
 
     if (this.buildTime) {
-      menuItems += `<div class="build-time">${this._formatBuildTime(this.buildTime)}</div>`;
+      const fallbackSuffix = this.usingSupportedActionsFallback ? ' (entity fallback)' : '';
+      menuItems += `<div class="build-time">${this._formatBuildTime(this.buildTime)}${fallbackSuffix}</div>`;
     }
 
     this._portalContainer.innerHTML = `

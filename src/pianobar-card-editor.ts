@@ -1,5 +1,6 @@
 import { LitElement, html, css, TemplateResult, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
+import { PropertyValues } from 'lit';
 import {
   HomeAssistant,
   PianobarCardConfig,
@@ -100,6 +101,15 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
 
   @state() private _config?: PianobarCardConfig;
   @state() private _activeTab = 'general';
+  @state() private _supportedActions: string[] = [];
+  @state() private _supportsRating = true;
+  /** Temporary debug tab: new way (get_services_for_target) vs old way (entity.attributes). */
+  @state() private _newWayActions: string[] = [];
+  @state() private _newWayError: string | null = null;
+  /** When error is "No result in response", this holds a truncated JSON of what we received. */
+  @state() private _newWayRawResponseStr: string | null = null;
+  @state() private _oldWayActions: string[] = [];
+  private _fetchedEntityId: string | null = null;
 
   static styles = css`
     :host {
@@ -196,10 +206,41 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
       opacity: 0.5;
       pointer-events: none;
     }
+    .debug-error {
+      font-size: 0.75rem;
+      color: var(--error-color);
+      background: var(--ha-card-background);
+      border: 1px solid var(--divider-color);
+      border-radius: 4px;
+      padding: 8px;
+      margin: 4px 0;
+      word-break: break-word;
+    }
+    .debug-list {
+      font-size: 0.8rem;
+      font-family: var(--code-font-family, monospace);
+      color: var(--secondary-text-color);
+      margin: 4px 0;
+    }
+    .debug-raw {
+      font-size: 0.7rem;
+      font-family: var(--code-font-family, monospace);
+      color: var(--secondary-text-color);
+      background: var(--ha-card-background);
+      border: 1px solid var(--divider-color);
+      border-radius: 4px;
+      padding: 6px;
+      margin: 4px 0;
+      word-break: break-all;
+    }
   `;
 
   setConfig(config: PianobarCardConfig): void {
     this._config = config;
+    // Reset fetch state so we refetch when entity is set
+    if (config.entity !== this._fetchedEntityId) {
+      this._fetchedEntityId = null;
+    }
   }
 
   private _updateConfig(key: string, value: unknown): void {
@@ -314,6 +355,26 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
     this._activeTab = tab;
   }
 
+  protected updated(changedProps: PropertyValues): void {
+    super.updated(changedProps);
+    const entityId = this._config?.entity;
+    if (!entityId || !this.hass || entityId === this._fetchedEntityId) return;
+    this._fetchedEntityId = entityId;
+    this._fetchSupportedActions(entityId).then((actions) => {
+      if (this._config?.entity !== entityId) return;
+      this._supportedActions = actions;
+      const supportsRating = this._supportsAnyRatingFromList(actions);
+      this._supportsRating = supportsRating;
+      const newConfig = { ...this._config };
+      (newConfig as Record<string, unknown>).supported_actions = actions.length > 0 ? actions : undefined;
+      if (!supportsRating) {
+        newConfig.showSongActions = false;
+      }
+      this._config = newConfig as PianobarCardConfig;
+      this._fireConfigChanged();
+    });
+  }
+
   private _computeLabel(schema: { name: string }): string {
     const labels: Record<string, string> = {
       entity: 'Entity',
@@ -334,14 +395,61 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
     return helpers[schema.name] || '';
   }
 
-  private _supportsAnyRating(): boolean {
-    if (!this.hass || !this._config?.entity) return false;
-    const entity = this.hass.states[this._config.entity];
-    const supportedActions = (entity?.attributes?.supported_actions as string[]) || [];
+  /** Fetch supported service names for the given entity (get_services_for_target or entity.attributes fallback). Populates debug state for the temporary debug tab. */
+  private async _fetchSupportedActions(entityId: string): Promise<string[]> {
+    const entity = this.hass?.states[entityId];
+    const fallback = (entity?.attributes?.supported_actions as string[] | undefined) || [];
+    this._oldWayActions = fallback;
+
+    if (!this.hass?.connection?.sendMessagePromise) {
+      this._newWayActions = [];
+      this._newWayError = 'No sendMessagePromise';
+      this._newWayRawResponseStr = null;
+      return fallback;
+    }
+    try {
+      // HA WebSocket API: type "get_services_for_target", target.entity_id; backend returns result as set of "domain.service" strings
+      const response = await this.hass.connection.sendMessagePromise({
+        type: 'get_services_for_target',
+        target: { entity_id: [entityId] },
+        expand_group: true,
+      }) as unknown;
+      // Promise may resolve with full message { result: [...] } or with unwrapped result (array directly)
+      const raw = Array.isArray(response)
+        ? response
+        : (response && typeof response === 'object' && (response as { result?: unknown }).result) as string[] | undefined;
+      if (!Array.isArray(raw)) {
+        this._newWayActions = [];
+        this._newWayError = 'No result in response';
+        try {
+          this._newWayRawResponseStr = JSON.stringify(response).slice(0, 600);
+        } catch {
+          this._newWayRawResponseStr = String(response).slice(0, 600);
+        }
+        return fallback;
+      }
+      this._newWayRawResponseStr = null;
+      // HA returns e.g. ["pianobar.love_song", "pianobar.ban_song", ...]; strip domain prefix
+      const derived = raw
+        .filter((s) => typeof s === 'string' && s.startsWith('pianobar.'))
+        .map((s) => (s as string).slice('pianobar.'.length));
+      this._newWayActions = derived;
+      this._newWayError = null;
+      return derived.length > 0 ? derived : fallback;
+    } catch (e) {
+      const errMsg = (e as Error)?.message ?? (e as { code?: string })?.code ?? String(e);
+      this._newWayActions = [];
+      this._newWayError = errMsg;
+      this._newWayRawResponseStr = null;
+      return fallback;
+    }
+  }
+
+  private _supportsAnyRatingFromList(actions: string[]): boolean {
     return (
-      supportedActions.includes('love_song') ||
-      supportedActions.includes('ban_song') ||
-      supportedActions.includes('tired_of_song')
+      actions.includes('love_song') ||
+      actions.includes('ban_song') ||
+      actions.includes('tired_of_song')
     );
   }
 
@@ -517,8 +625,8 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
       ? (this._config?.reserveDetailsSpace ?? preset.reserveDetailsSpace)
       : preset.reserveDetailsSpace;
 
-    // Check if rating actions are supported
-    const supportsRating = this._supportsAnyRating();
+    // Use fetched supported_actions: if entity has no rating support, force off and disable checkbox
+    const supportsRating = this._supportsRating;
 
     return html`
       ${this._renderCheckbox('showPlaybackControls', 'Show playback controls', showPlaybackControls)}
@@ -551,6 +659,31 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
     `;
   }
 
+  /** Temporary debug tab: compare get_services_for_target (new way) vs entity.attributes (old way). */
+  private _renderDebugActionsTab(): TemplateResult {
+    return html`
+      <p class="helper-text">Temporary tab for debugging. Compare new API vs entity attributes.</p>
+      <div class="section-title">From get_services_for_target (new way)</div>
+      ${this._newWayError
+        ? html`<div class="debug-error">Error: ${this._newWayError}</div>
+      ${this._newWayRawResponseStr
+        ? html`<div class="debug-raw">Raw: ${this._newWayRawResponseStr}${this._newWayRawResponseStr.length >= 600 ? '…' : ''}</div>`
+        : nothing}`
+        : nothing}
+      <div class="debug-list">
+        ${this._newWayActions.length > 0
+          ? this._newWayActions.join(', ')
+          : '(none)'}
+      </div>
+      <div class="section-title">From entity.attributes (old way)</div>
+      <div class="debug-list">
+        ${this._oldWayActions.length > 0
+          ? this._oldWayActions.join(', ')
+          : '(none)'}
+      </div>
+    `;
+  }
+
   render(): TemplateResult {
     if (!this.hass || !this._config) {
       return html``;
@@ -561,6 +694,7 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
       { id: 'appearance', label: 'Appearance' },
       { id: 'controls', label: 'Controls' },
       { id: 'advanced', label: 'Advanced' },
+      // { id: 'debug-actions', label: 'Supported actions (debug)' },
     ];
 
     return html`
@@ -591,6 +725,9 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
         <div class="tab-content ${this._activeTab === 'advanced' ? 'active' : ''}">
           ${this._renderAdvancedTab()}
         </div>
+        ${false /* Debug tab: set to true and uncomment tab entry to re-enable */
+          ? html`<div class="tab-content ${this._activeTab === 'debug-actions' ? 'active' : ''}">${this._renderDebugActionsTab()}</div>`
+          : nothing}
 
         <div class="version-info">
           Build: ${BUILD_VERSION}
