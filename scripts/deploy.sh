@@ -121,7 +121,11 @@ if ! ssh -o BatchMode=yes -o ConnectTimeout=5 ${HA_USER}@${HA_HOST} exit 2>/dev/
     echo ""
     echo "You will be prompted for your password during this deployment."
     echo ""
-    read -p "Press Enter to continue or Ctrl+C to cancel..."
+    if [ -t 0 ]; then
+        read -p "Press Enter to continue or Ctrl+C to cancel..."
+    else
+        echo "Non-interactive run: skipping prompt (use SSH keys to avoid password)."
+    fi
 fi
 
 # Always build first

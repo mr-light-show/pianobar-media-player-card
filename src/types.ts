@@ -155,6 +155,8 @@ export interface PianobarCardConfig {
   stationDisplay?: StationDisplayMode;
   volume_entity?: string;
   name?: string;
+  /** Persisted list of supported service names (e.g. love_song, explain_song) for overflow menu; from editor get_services_for_target or entity.attributes fallback */
+  supported_actions?: string[];
 }
 
 // Resolved config with all values filled in
@@ -178,6 +180,7 @@ export interface ResolvedConfig {
   stationDisplay: StationDisplayMode;
   volume_entity?: string;
   name?: string;
+  supported_actions?: string[];
 }
 
 // Lovelace card element interface

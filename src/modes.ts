@@ -125,10 +125,11 @@ export function resolveConfig(config: PianobarCardConfig): ResolvedConfig {
       stationDisplay: config.stationDisplay ?? preset.stationDisplay,
       volume_entity: config.volume_entity,
       name: config.name,
+      supported_actions: config.supported_actions,
     };
   }
 
-  // Preset modes: use preset values, ignore user overrides (except volume_entity, name)
+  // Preset modes: use preset values, ignore user overrides (except volume_entity, name, supported_actions)
   return {
     entity: config.entity,
     mode,
@@ -147,6 +148,7 @@ export function resolveConfig(config: PianobarCardConfig): ResolvedConfig {
     stationDisplay: preset.stationDisplay,
     volume_entity: config.volume_entity,
     name: config.name,
+    supported_actions: config.supported_actions,
   };
 }
 

@@ -204,30 +204,39 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     return entity.state === 'unavailable' || entity.state === 'unknown';
   }
 
-  // Check if specific song actions are supported via entity's supported_actions attribute
-  private _getSupportedActions(): string[] {
+  /** Effective supported service names: config.supported_actions or entity.attributes.supported_actions fallback. */
+  private _getEffectiveSupportedActions(): string[] {
+    const fromConfig = this._resolvedConfig?.supported_actions ?? this._config?.supported_actions;
+    if (fromConfig && fromConfig.length > 0) return fromConfig;
     const entity = this._getEntity();
-    return (entity?.attributes?.supported_actions as string[]) || [];
+    const fromEntity = (entity?.attributes?.supported_actions as string[]) || [];
+    return fromEntity;
+  }
+
+  /** True when supported_actions are from entity.attributes (no config.supported_actions). */
+  private _isUsingSupportedActionsFallback(): boolean {
+    const fromConfig = this._resolvedConfig?.supported_actions ?? this._config?.supported_actions;
+    if (fromConfig && fromConfig.length > 0) return false;
+    const entity = this._getEntity();
+    const fromEntity = (entity?.attributes?.supported_actions as string[]) || [];
+    return fromEntity.length > 0;
   }
 
   private _supportsLove(): boolean {
-    return this._getSupportedActions().includes('love_song');
+    return this._getEffectiveSupportedActions().includes('love_song');
   }
 
   private _supportsBan(): boolean {
-    return this._getSupportedActions().includes('ban_song');
+    return this._getEffectiveSupportedActions().includes('ban_song');
   }
 
   private _supportsTired(): boolean {
-    return this._getSupportedActions().includes('tired_of_song');
+    return this._getEffectiveSupportedActions().includes('tired_of_song');
   }
 
-  private _supportsAnyRating(entity: HassEntity): boolean {
-    const supportedActions = entity.attributes.supported_actions as string[] | undefined;
-    if (!supportedActions || !Array.isArray(supportedActions)) return false;
-    return supportedActions.includes('love_song') ||
-           supportedActions.includes('ban_song') ||
-           supportedActions.includes('tired_of_song');
+  private _supportsAnyRating(): boolean {
+    const actions = this._getEffectiveSupportedActions();
+    return actions.includes('love_song') || actions.includes('ban_song') || actions.includes('tired_of_song');
   }
 
   // Service calls
@@ -524,26 +533,23 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   }
 
   private _renderOverflowMenu(entity: HassEntity): TemplateResult {
+    const supported = this._getEffectiveSupportedActions();
     const stations = (entity.attributes.stations as Station[]) || [];
     const hasStations = stations.length > 0;
     const hasCurrentSong = !!entity.attributes.media_title;
-    const hasRatings = this._supportsAnyRating(entity) && hasCurrentSong;
+    const hasRatings = this._supportsAnyRating() && hasCurrentSong;
     const isOn = entity.state !== 'off' && entity.state !== 'unavailable';
-    // Only show station mode if station is selected and not QuickMix
     const currentStation = stations.find(s => s.id === entity.attributes.media_content_id);
-    const showStationMode = isOn && hasStations && currentStation && !currentStation.isQuickMix;
-    // Show QuickMix option if player is on and we have stations (including QuickMix itself)
-    const showQuickMix = isOn && hasStations;
-    // Show Station Info option if player is on and a station is selected
-    const showStationInfo = isOn && hasStations && currentStation;
-    // Show Add Music option if player is on and a station is selected
-    const showAddMusic = isOn && hasStations && currentStation;
-    // Show Create Station option if stations exist
-    const showCreateStation = hasStations;
-    // Show Rename option if player is on and we have renameable stations
-    const showRename = isOn && hasStations;
-    // Show Delete option if player is on and we have deleteable stations
-    const showDelete = isOn && hasStations;
+    const showStationMode = isOn && hasStations && currentStation && !currentStation.isQuickMix &&
+      (supported.includes('get_station_modes') || supported.includes('set_station_mode'));
+    const showQuickMix = isOn && hasStations && supported.includes('set_quick_mix');
+    const showStationInfo = isOn && hasStations && currentStation && supported.includes('get_station_info');
+    const showAddMusic = isOn && hasStations && currentStation && supported.includes('add_seed');
+    const showCreateStation = hasStations && supported.includes('create_station');
+    const showRename = isOn && hasStations && supported.includes('rename_station');
+    const showDelete = isOn && hasStations && supported.includes('delete_station');
+    const showExplain = hasCurrentSong && supported.includes('explain_song');
+    const showUpcoming = isOn && supported.includes('get_upcoming');
 
     return html`
       <pmc-overflow-menu
@@ -551,8 +557,8 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         .entityId=${entity.entity_id}
         .showStationOption=${hasStations}
         .showRatingsOption=${hasRatings}
-        .showExplainOption=${hasCurrentSong}
-        .showUpcomingOption=${isOn}
+        .showExplainOption=${showExplain}
+        .showUpcomingOption=${showUpcoming}
         .showStationModeOption=${showStationMode}
         .showQuickMixOption=${showQuickMix}
         .showStationInfoOption=${showStationInfo}
@@ -563,6 +569,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         .isOn=${isOn}
         .disabled=${this._isUnavailable(entity)}
         .buildTime=${__BUILD_TIMESTAMP__}
+        .usingSupportedActionsFallback=${this._isUsingSupportedActionsFallback()}
         @more-info=${this._handleMoreInfo}
         @power-toggle=${this._handlePowerToggle}
         @select-station=${this._handleOpenStationPopup}
