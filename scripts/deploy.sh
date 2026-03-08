@@ -47,6 +47,7 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Generate cache-bust version (Unix timestamp)
 VERSION=$(date +%s)
+RESOURCE_URL="/hacsfiles/${CARD_NAME}/${CARD_NAME}.js?v=${VERSION}"
 
 # Function to get resource ID for our card via WebSocket
 get_resource_id() {
@@ -74,7 +75,7 @@ get_resource_id() {
 
 # Function to update Lovelace resource URL via WebSocket (instant, no restart needed)
 update_lovelace_resource() {
-    local new_url="/hacsfiles/${CARD_NAME}/${CARD_NAME}.js?v=${VERSION}"
+    local new_url="$RESOURCE_URL"
     
     if [ -z "$HA_TOKEN" ]; then
         return 1  # No token
@@ -153,15 +154,17 @@ echo -e "${YELLOW}Deploying to Home Assistant...${NC}"
 
 # Generate gzip version for better performance
 gzip -9 -c "$PROJECT_DIR/dist/${CARD_NAME}.js" > "$PROJECT_DIR/dist/${CARD_NAME}.js.gz"
+if [ ! -f "$PROJECT_DIR/dist/${CARD_NAME}.js.gz" ] || [ ! -s "$PROJECT_DIR/dist/${CARD_NAME}.js.gz" ]; then
+    echo -e "${RED}Failed to create .js.gz${NC}" >&2
+    exit 1
+fi
 
-# Copy both .js and .js.gz files
-rsync -az --checksum \
-    "$PROJECT_DIR/dist/${CARD_NAME}.js" \
-    "$PROJECT_DIR/dist/${CARD_NAME}.js.gz" \
-    "${HA_USER}@${HA_HOST}:${HA_WWW_PATH}/"
+# Copy .js and .js.gz separately so both are always deployed
+rsync -az --checksum "$PROJECT_DIR/dist/${CARD_NAME}.js" "${HA_USER}@${HA_HOST}:${HA_WWW_PATH}/"
+rsync -az --checksum "$PROJECT_DIR/dist/${CARD_NAME}.js.gz" "${HA_USER}@${HA_HOST}:${HA_WWW_PATH}/"
 
 echo ""
-echo -e "${GREEN}✅ File deployed successfully!${NC}"
+echo -e "${GREEN}✅ Deployed ${CARD_NAME}.js and ${CARD_NAME}.js.gz${NC}"
 echo ""
 
 # Update Lovelace resource URL via WebSocket
@@ -173,7 +176,7 @@ if update_lovelace_resource; then
     echo -e "  New resource URL:"
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
-    echo -e "  ${GREEN}/hacsfiles/${CARD_NAME}/${CARD_NAME}.js?v=${VERSION}${NC}"
+    echo -e "  ${GREEN}${RESOURCE_URL}${NC}"
     echo ""
     echo -e "${GREEN}Just refresh your browser to see changes!${NC}"
 else
@@ -183,7 +186,7 @@ else
     echo -e "  Resource URL:"
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
-    echo -e "  ${GREEN}/hacsfiles/${CARD_NAME}/${CARD_NAME}.js?v=${VERSION}${NC}"
+    echo -e "  ${GREEN}${RESOURCE_URL}${NC}"
     echo ""
     
     case $UPDATE_RESULT in
@@ -203,7 +206,7 @@ else
             echo ""
             echo "Add to Lovelace resources (Settings → Dashboards → ⋮ → Resources):"
             echo ""
-            echo "  URL:  /hacsfiles/${CARD_NAME}/${CARD_NAME}.js?v=${VERSION}"
+            echo "  URL:  ${RESOURCE_URL}"
             echo "  Type: JavaScript Module"
             ;;
         *)
