@@ -137,7 +137,7 @@ The project includes a deploy script that copies the built card to your Home Ass
    ```bash
    export HA_HOST="homeassistant.local"  # Your HA hostname or IP
    export HA_USER="root"                  # SSH user
-   export HA_WWW_PATH="/config/www"       # www directory path
+   export HA_WWW_PATH="/homeassistant/www/community/pianobar-media-player-card"  # default; use /config/www/community/... if your config is not under /homeassistant
    ```
 
 2. Ensure SSH access to your Home Assistant server is configured
@@ -159,7 +159,7 @@ The script will:
 After deploying, add the resource in Home Assistant:
 1. Go to Settings → Dashboards → ⋮ (three dots) → Resources
 2. Add Resource:
-   - URL: `/local/pianobar-media-player-card.js?v=<timestamp>` (use the URL from deploy output)
+   - URL: `/local/community/pianobar-media-player-card/pianobar-media-player-card.js?v=<timestamp>` (use the URL from deploy output)
    - Type: JavaScript Module
 3. Hard refresh your browser (`Cmd+Shift+R` / `Ctrl+Shift+R`)
 
