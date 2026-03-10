@@ -318,7 +318,7 @@ export const cardStyles = css`
     top: auto;
     right: auto;
     bottom: auto;
-    width: 80%;
+    width: var(--pmc-tall-artwork-width, 80%);
     max-width: none;
     aspect-ratio: 1 / 1;
     margin: 16px auto 0;
@@ -415,7 +415,7 @@ export const cardStyles = css`
 
   /* Artwork placeholder for tall artwork */
   :host([artwork-mode="tall"]) .artwork-placeholder-tall {
-    width: 80%;
+    width: var(--pmc-tall-artwork-width, 80%);
     max-width: none;
     aspect-ratio: 1 / 1;
     margin: 16px auto 0;

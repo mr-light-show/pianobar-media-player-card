@@ -49,6 +49,29 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 VERSION=$(date +%s)
 RESOURCE_URL="/hacsfiles/${CARD_NAME}/${CARD_NAME}.js?v=${VERSION}"
 
+# Check HA WebSocket auth. Returns 0 = OK, 1 = auth invalid, 2 = no token/websocat, 3 = connection/network failure.
+check_ha_auth() {
+    if [ -z "$HA_TOKEN" ]; then
+        return 2
+    fi
+    if ! command -v websocat &> /dev/null; then
+        return 2
+    fi
+    # HA sends auth_required first, then auth_ok/auth_invalid after our auth - read until we get the auth result
+    local auth_line
+    auth_line=$({ printf '{"type":"auth","access_token":"%s"}\n' "$HA_TOKEN"; sleep 2; } \
+        | websocat ws://${HA_HOST}:${HA_PORT}/api/websocket 2>/dev/null \
+        | grep -m1 -E '"type":"auth_ok"|"type":"auth_invalid"')
+    if echo "$auth_line" | grep -q '"type":"auth_ok"'; then
+        return 0
+    fi
+    if echo "$auth_line" | grep -q '"type":"auth_invalid"'; then
+        return 1
+    fi
+    # No auth_ok and no auth_invalid: connection refused, timeout, or unreachable host
+    return 3
+}
+
 # Function to get resource ID for our card via WebSocket
 get_resource_id() {
     if [ -z "$HA_TOKEN" ]; then
@@ -141,9 +164,13 @@ echo -e "📦 File: ${CARD_NAME}.js (${FILE_SIZE})"
 echo -e "🎯 Target: ${HA_USER}@${HA_HOST}:${HA_WWW_PATH}/"
 echo ""
 
-# Ensure www directory exists on remote
+# Ensure www directory exists on remote (fail with clear message if SSH/login fails)
 echo -e "${YELLOW}Ensuring www directory exists...${NC}"
-ssh ${HA_USER}@${HA_HOST} "mkdir -p ${HA_WWW_PATH}"
+if ! ssh -o ConnectTimeout=10 ${HA_USER}@${HA_HOST} "mkdir -p ${HA_WWW_PATH}"; then
+    echo -e "${RED}Deploy failed: could not connect or authenticate to ${HA_USER}@${HA_HOST}${NC}" >&2
+    echo "Check host, user, and SSH keys (e.g. ssh-copy-id ${HA_USER}@${HA_HOST})." >&2
+    exit 1
+fi
 
 # Fix permissions on remote directory (in case it's owned by root)
 echo -e "${YELLOW}Fixing remote directory permissions...${NC}"
@@ -160,8 +187,11 @@ if [ ! -f "$PROJECT_DIR/dist/${CARD_NAME}.js.gz" ] || [ ! -s "$PROJECT_DIR/dist/
 fi
 
 # Copy .js and .js.gz separately so both are always deployed
-rsync -az --checksum "$PROJECT_DIR/dist/${CARD_NAME}.js" "${HA_USER}@${HA_HOST}:${HA_WWW_PATH}/"
-rsync -az --checksum "$PROJECT_DIR/dist/${CARD_NAME}.js.gz" "${HA_USER}@${HA_HOST}:${HA_WWW_PATH}/"
+if ! rsync -az --checksum "$PROJECT_DIR/dist/${CARD_NAME}.js" "${HA_USER}@${HA_HOST}:${HA_WWW_PATH}/" \
+     || ! rsync -az --checksum "$PROJECT_DIR/dist/${CARD_NAME}.js.gz" "${HA_USER}@${HA_HOST}:${HA_WWW_PATH}/"; then
+    echo -e "${RED}Deploy failed: could not copy files to ${HA_USER}@${HA_HOST}${NC}" >&2
+    exit 1
+fi
 
 echo ""
 echo -e "${GREEN}✅ Deployed ${CARD_NAME}.js and ${CARD_NAME}.js.gz${NC}"
@@ -169,6 +199,26 @@ echo ""
 
 # Update Lovelace resource URL via WebSocket
 echo -e "${YELLOW}Updating Lovelace resource URL...${NC}"
+if [ -n "$HA_TOKEN" ] && command -v websocat &> /dev/null; then
+    if ! check_ha_auth; then
+        AUTH_RESULT=$?
+        echo -e "${RED}Deploy failed: could not login to Home Assistant${NC}" >&2
+        case $AUTH_RESULT in
+            1)
+                echo "Invalid or expired token in scripts/HA_TOKEN." >&2
+                echo "Generate a new one at: Profile → Security → Long-Lived Access Tokens" >&2
+                ;;
+            3)
+                echo "Cannot reach Home Assistant at ${HA_HOST}:${HA_PORT}." >&2
+                echo "Check HA_HOST, HA_PORT, and that HA is running and reachable (e.g. ping ${HA_HOST})." >&2
+                ;;
+            *)
+                echo "Check HA_HOST (${HA_HOST}), HA_PORT (${HA_PORT}), and network." >&2
+                ;;
+        esac
+        exit 1
+    fi
+fi
 if update_lovelace_resource; then
     echo -e "${GREEN}✅ Resource URL updated!${NC}"
     echo ""
@@ -182,13 +232,6 @@ if update_lovelace_resource; then
 else
     UPDATE_RESULT=$?
     echo ""
-    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "  Resource URL:"
-    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo ""
-    echo -e "  ${GREEN}${RESOURCE_URL}${NC}"
-    echo ""
-    
     case $UPDATE_RESULT in
         1)
             echo -e "${YELLOW}⚠ No HA token - cannot update resource automatically${NC}"
@@ -202,18 +245,28 @@ else
             echo "Install with: brew install websocat"
             ;;
         3)
-            echo -e "${YELLOW}⚠ Resource not found - add it first in HA${NC}"
+            echo -e "${RED}Deploy failed: Lovelace resource not found${NC}" >&2
             echo ""
-            echo "Add to Lovelace resources (Settings → Dashboards → ⋮ → Resources):"
+            echo "Add the card to Lovelace resources first (Settings → Dashboards → ⋮ → Resources):"
             echo ""
             echo "  URL:  ${RESOURCE_URL}"
             echo "  Type: JavaScript Module"
+            echo ""
+            exit 1
             ;;
         *)
-            echo -e "${YELLOW}⚠ Could not update resource automatically${NC}"
+            echo -e "${RED}Deploy failed: could not update Lovelace resource URL${NC}" >&2
+            echo "Check HA logs or try updating the resource URL manually in Settings → Dashboards → Resources." >&2
+            echo ""
+            exit 1
             ;;
     esac
     echo ""
-    echo -e "${YELLOW}Manually update the resource URL in HA, then refresh browser${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  Resource URL (update manually if needed):"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    echo -e "  ${GREEN}${RESOURCE_URL}${NC}"
+    echo ""
 fi
 echo ""

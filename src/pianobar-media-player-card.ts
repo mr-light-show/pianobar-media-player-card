@@ -159,6 +159,12 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     if (this._resolvedConfig) {
       this.setAttribute('artwork-mode', this._resolvedConfig.artwork);
       this.setAttribute('mode', this._resolvedConfig.mode);
+      if (this._resolvedConfig.artwork === 'tall') {
+        const size = this._resolvedConfig.tallArtworkSize ?? 80;
+        this.style.setProperty('--pmc-tall-artwork-width', `${size}%`);
+      } else {
+        this.style.removeProperty('--pmc-tall-artwork-width');
+      }
     }
 
     // Extract colors when artwork changes
