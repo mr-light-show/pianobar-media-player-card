@@ -153,6 +153,8 @@ export interface PianobarCardConfig {
   showPlaybackControls?: boolean;
   showPowerButton?: boolean;
   stationDisplay?: StationDisplayMode;
+  /** Tall layout only: artwork width as percentage of card (50–100, default 80). */
+  tallArtworkSize?: number;
   volume_entity?: string;
   name?: string;
   /** Persisted list of supported service names (e.g. love_song, explain_song) for overflow menu; from editor get_services_for_target or entity.attributes fallback */
@@ -178,6 +180,8 @@ export interface ResolvedConfig {
   showPlaybackControls: boolean;
   showPowerButton: boolean;
   stationDisplay: StationDisplayMode;
+  /** Tall layout only: resolved artwork width percentage (50–100). */
+  tallArtworkSize: number;
   volume_entity?: string;
   name?: string;
   supported_actions?: string[];

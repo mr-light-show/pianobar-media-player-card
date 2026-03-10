@@ -78,6 +78,14 @@ const CUSTOM_APPEARANCE_SCHEMA = [
   },
 ];
 
+/** Schema for Tall artwork size (%); only shown when layout is tall. */
+const TALL_ARTWORK_SIZE_SCHEMA = [
+  {
+    name: 'tallArtworkSize',
+    selector: { number: { min: 50, max: 100, step: 5 } },
+  },
+];
+
 const STATION_DISPLAY_SCHEMA = [
   {
     name: 'stationDisplay',
@@ -310,6 +318,12 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
     const isCustomMode = currentMode === 'custom';
     
     // Build complete config with all current effective values
+    const effectiveTallSize =
+      currentMode === 'tall'
+        ? (this._config?.tallArtworkSize ?? 80)
+        : isCustomMode
+          ? (this._config?.tallArtworkSize ?? 80)
+          : 80;
     const resolvedConfig = {
       ...this._config,
       // Fill in all preset values if not in custom mode
@@ -326,14 +340,25 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
       showProgressBar: isCustomMode ? (this._config?.showProgressBar ?? preset.showProgressBar) : preset.showProgressBar,
       showProgressTime: isCustomMode ? (this._config?.showProgressTime ?? preset.showProgressTime) : preset.showProgressTime,
       stationDisplay: isCustomMode ? (this._config?.stationDisplay ?? preset.stationDisplay) : preset.stationDisplay,
+      tallArtworkSize: effectiveTallSize,
     };
     
     // Now apply the appearance changes to the COMPLETE config
     const newConfig = { ...resolvedConfig, ...detail.value };
     
-    // Detect if settings match a preset (usually won't - will be 'custom')
+    // Clamp tallArtworkSize if present
+    if (typeof newConfig.tallArtworkSize === 'number') {
+      newConfig.tallArtworkSize = Math.min(100, Math.max(50, newConfig.tallArtworkSize));
+    }
+    
+    // Detect if settings match a preset (tallArtworkSize must be 80 to match tall)
     const detectedMode = detectMatchingPreset(newConfig);
     newConfig.mode = detectedMode;
+    
+    // When we match tall preset, omit tallArtworkSize from saved config to keep YAML minimal
+    if (detectedMode === 'tall' && (newConfig as Record<string, unknown>).tallArtworkSize === 80) {
+      delete (newConfig as Record<string, unknown>).tallArtworkSize;
+    }
     
     this._config = newConfig as PianobarCardConfig;
     this._fireConfigChanged();
@@ -384,6 +409,7 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
       name: 'Custom Name',
       volume_entity: 'Volume Entity',
       artwork: 'Artwork Style',
+      tallArtworkSize: 'Tall artwork size (%)',
       stationDisplay: 'Station Selector',
     };
     return labels[schema.name] || schema.name;
@@ -483,11 +509,23 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
     const currentMode = this._config?.mode || 'default';
     const preset = getModePreset(currentMode);
     const isCustomMode = currentMode === 'custom';
+    const effectiveArtwork = isCustomMode ? (this._config?.artwork ?? preset.artwork) : preset.artwork;
+    const showTallSize = currentMode === 'tall' || (isCustomMode && effectiveArtwork === 'tall');
+    const effectiveTallSize =
+      currentMode === 'tall'
+        ? (this._config?.tallArtworkSize ?? 80)
+        : isCustomMode
+          ? (this._config?.tallArtworkSize ?? 80)
+          : 80;
+    
+    const appearanceSchema = showTallSize
+      ? [...CUSTOM_APPEARANCE_SCHEMA, ...TALL_ARTWORK_SIZE_SCHEMA]
+      : CUSTOM_APPEARANCE_SCHEMA;
     
     const dataWithResolvedValues = {
       ...this._config,
-      // Always show the effective value (from preset for preset modes)
-      artwork: isCustomMode ? (this._config?.artwork ?? preset.artwork) : preset.artwork,
+      artwork: effectiveArtwork,
+      ...(showTallSize ? { tallArtworkSize: effectiveTallSize } : {}),
     };
 
     const stationDisplay = isCustomMode 
@@ -499,7 +537,7 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
       <ha-form
         .hass=${this.hass}
         .data=${dataWithResolvedValues}
-        .schema=${CUSTOM_APPEARANCE_SCHEMA}
+        .schema=${appearanceSchema}
         .computeLabel=${this._computeLabel}
         @value-changed=${this._handleAppearanceChange}
       ></ha-form>

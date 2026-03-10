@@ -1,5 +1,10 @@
 import { CardMode, ArtworkMode, ResolvedConfig, PianobarCardConfig, StationDisplayMode } from './types';
 
+/** Clamp tall artwork size to valid range (50–100). */
+function clampTallArtworkSize(value: number | undefined): number {
+  return Math.min(100, Math.max(50, value ?? 80));
+}
+
 // Preset mode configurations
 interface ModePreset {
   artwork: ArtworkMode;
@@ -17,6 +22,8 @@ interface ModePreset {
   showPlaybackControls: boolean;
   showPowerButton: boolean;
   stationDisplay: StationDisplayMode;
+  /** Tall layout only: artwork width % (optional; tall preset uses 80). */
+  tallArtworkSize?: number;
 }
 
 const MODE_PRESETS: Record<CardMode, ModePreset> = {
@@ -79,6 +86,7 @@ const MODE_PRESETS: Record<CardMode, ModePreset> = {
     showPlaybackControls: true,
     showPowerButton: false,
     stationDisplay: 'normal', // Show station pill at bottom
+    tallArtworkSize: 80,
   },
   custom: {
     // Custom mode uses user-provided values, these are fallback defaults
@@ -123,13 +131,16 @@ export function resolveConfig(config: PianobarCardConfig): ResolvedConfig {
       showPlaybackControls: config.showPlaybackControls ?? preset.showPlaybackControls,
       showPowerButton: config.showPowerButton ?? preset.showPowerButton,
       stationDisplay: config.stationDisplay ?? preset.stationDisplay,
+      tallArtworkSize: clampTallArtworkSize(config.tallArtworkSize),
       volume_entity: config.volume_entity,
       name: config.name,
       supported_actions: config.supported_actions,
     };
   }
 
-  // Preset modes: use preset values, ignore user overrides (except volume_entity, name, supported_actions)
+  // Preset modes: use preset values; for tall, allow config.tallArtworkSize override
+  const tallArtworkSize =
+    mode === 'tall' ? clampTallArtworkSize(config.tallArtworkSize) : 80;
   return {
     entity: config.entity,
     mode,
@@ -146,6 +157,7 @@ export function resolveConfig(config: PianobarCardConfig): ResolvedConfig {
     showPlaybackControls: preset.showPlaybackControls,
     showPowerButton: preset.showPowerButton,
     stationDisplay: preset.stationDisplay,
+    tallArtworkSize,
     volume_entity: config.volume_entity,
     name: config.name,
     supported_actions: config.supported_actions,
@@ -209,7 +221,8 @@ export function detectMatchingPreset(config: Partial<PianobarCardConfig>): CardM
       (config.showProgressBar ?? true) === preset.showProgressBar &&
       (config.showProgressTime ?? false) === preset.showProgressTime &&
       (config.showPowerButton ?? false) === preset.showPowerButton &&
-      (config.stationDisplay ?? 'hidden') === preset.stationDisplay
+      (config.stationDisplay ?? 'hidden') === preset.stationDisplay &&
+      (config.tallArtworkSize ?? 80) === (preset.tallArtworkSize ?? 80)
     ) {
       return mode;
     }
