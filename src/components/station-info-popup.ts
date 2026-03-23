@@ -54,15 +54,10 @@ export class StationInfoPopup extends CenteredPopup {
 
   protected getComponentStylesString(): string {
     return `
-      .dialog {
-        position: fixed;
-        background: var(--pmc-card-background);
-        border-radius: 12px;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      .pmc-popup-container {
         padding: 0;
         display: flex;
         flex-direction: column;
-        z-index: 99999;
         width: 90vw;
         max-width: 650px;
         max-height: 80vh;

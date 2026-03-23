@@ -23,15 +23,10 @@ export class DeleteDialog extends CenteredPopup {
 
   protected getComponentStylesString(): string {
     return `
-      .dialog {
-        position: fixed;
-        background: var(--pmc-card-background);
-        border-radius: 12px;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      .pmc-popup-container {
         padding: 0;
         display: flex;
         flex-direction: column;
-        z-index: 99999;
         min-width: 320px;
         max-width: 450px;
         max-height: calc(100vh - 100px);
