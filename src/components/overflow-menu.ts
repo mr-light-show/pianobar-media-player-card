@@ -15,6 +15,7 @@ export class OverflowMenu extends LitElement {
   @property({ type: Boolean }) showCreateStationOption = false;
   @property({ type: Boolean }) showRenameOption = false;
   @property({ type: Boolean }) showDeleteOption = false;
+  @property({ type: Boolean }) showAccountSwitch = false;
   @property({ type: Boolean }) isOn = true;
   @property({ type: Boolean }) disabled = false;
   @property({ type: String }) buildTime = '';
@@ -194,6 +195,7 @@ export class OverflowMenu extends LitElement {
     if (this.showCreateStationOption) itemCount++;
     if (this.showRenameOption) itemCount++;
     if (this.showDeleteOption) itemCount++;
+    if (this.showAccountSwitch) itemCount++;
     const estimatedHeight = itemCount * 44 + (this.buildTime ? 40 : 0); // Approximate height per item + build time
     const maxMenuHeight = window.innerHeight - 16; // Account for max-height: calc(100vh - 16px)
     const menuHeight = Math.min(estimatedHeight, maxMenuHeight);
@@ -455,6 +457,15 @@ export class OverflowMenu extends LitElement {
       `;
     }
     
+    if (this.showAccountSwitch) {
+      menuItems += `
+        <button class="menu-item" data-action="switch-account">
+          <ha-icon icon="mdi:account-switch"></ha-icon>
+          <span>Switch Account</span>
+        </button>
+      `;
+    }
+
     menuItems += `
       <button class="menu-item" data-action="more-info">
         <ha-icon icon="mdi:information-outline"></ha-icon>
@@ -526,6 +537,9 @@ export class OverflowMenu extends LitElement {
         } else if (action === 'delete-station') {
           const rect = (item as Element).getBoundingClientRect();
           this.dispatchEvent(new CustomEvent('delete-station', { bubbles: true, composed: true, detail: { anchorPosition: { left: rect.left, top: rect.top, bottom: rect.bottom, right: rect.right } } }));
+        } else if (action === 'switch-account') {
+          const rect = (item as Element).getBoundingClientRect();
+          this.dispatchEvent(new CustomEvent('switch-account', { bubbles: true, composed: true, detail: { anchorPosition: { left: rect.left, top: rect.top, bottom: rect.bottom, right: rect.right } } }));
         }
         this._menuOpen = false;
         this._updatePortalContent();

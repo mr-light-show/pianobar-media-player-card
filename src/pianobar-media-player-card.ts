@@ -32,6 +32,7 @@ import './components/delete-dialog';
 import './components/station-info-popup';
 import './components/add-music-popup';
 import './components/create-station-modal';
+import './components/account-selector-popup';
 import './pianobar-card-editor';
 
 // Card registration info
@@ -84,6 +85,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   @state() private _openCreateStationModal = false;
   @state() private _genreCategories: GenreCategory[] = [];
   @state() private _genreLoading = false;
+  @state() private _openAccountPopup = false;
   
   private _createStationModalRef: Ref<any> = createRef();
 
@@ -556,6 +558,8 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const showDelete = isOn && hasStations && supported.includes('delete_station');
     const showExplain = hasCurrentSong && supported.includes('explain_song');
     const showUpcoming = isOn && supported.includes('get_upcoming');
+    const accounts = (entity.attributes.accounts as Array<{id: string; label: string}>) || [];
+    const showAccountSwitch = accounts.length > 1;
 
     return html`
       <pmc-overflow-menu
@@ -572,6 +576,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         .showCreateStationOption=${showCreateStation}
         .showRenameOption=${showRename}
         .showDeleteOption=${showDelete}
+        .showAccountSwitch=${showAccountSwitch}
         .isOn=${isOn}
         .disabled=${this._isUnavailable(entity)}
         .buildTime=${__BUILD_TIMESTAMP__}
@@ -589,6 +594,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         @station-info=${this._handleStationInfo}
         @add-music=${this._handleAddMusic}
         @create-station=${this._handleCreateStation}
+        @switch-account=${this._handleOpenAccountPopup}
       ></pmc-overflow-menu>
     `;
   }
@@ -809,6 +815,49 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       const event = new CustomEvent('hass-notification', {
         detail: {
           message: 'Failed to set station mode',
+          duration: 3000,
+        },
+        bubbles: true,
+        composed: true,
+      });
+      this.dispatchEvent(event);
+    }
+  }
+
+  // Account switching handlers
+  private async _handleOpenAccountPopup(e: CustomEvent): Promise<void> {
+    this._openAccountPopup = false;
+    await this.updateComplete;
+
+    this._popupAnchorPosition = e.detail?.anchorPosition;
+    this._openAccountPopup = true;
+  }
+
+  private _handleAccountPopupClosed(): void {
+    this._openAccountPopup = false;
+    this._popupAnchorPosition = undefined;
+  }
+
+  private async _handleAccountSelect(e: CustomEvent): Promise<void> {
+    const entity = this._getEntity();
+    if (!entity || !this.hass) return;
+
+    const { accountId } = e.detail;
+
+    try {
+      await this.hass.callService(
+        'pianobar',
+        'switch_account',
+        {
+          entity_id: entity.entity_id,
+          account_id: accountId,
+        }
+      );
+    } catch (err) {
+      console.error('Error switching account:', err);
+      const event = new CustomEvent('hass-notification', {
+        detail: {
+          message: 'Failed to switch account',
           duration: 3000,
         },
         bubbles: true,
@@ -1690,6 +1739,25 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     `;
   }
 
+  private _renderAccountPopup(entity: HassEntity): TemplateResult | typeof nothing {
+    if (!this._openAccountPopup) return nothing;
+
+    const accounts = (entity.attributes.accounts as Array<{id: string; label: string}>) || [];
+    const currentAccount = entity.attributes.current_account as {id: string; label: string} | undefined;
+    const currentAccountId = currentAccount?.id || '';
+
+    return html`
+      <pmc-account-selector-popup
+        .externalOpen=${this._openAccountPopup}
+        .anchorPosition=${this._popupAnchorPosition}
+        .accounts=${accounts}
+        .currentAccountId=${currentAccountId}
+        @account-select=${this._handleAccountSelect}
+        @popup-closed=${this._handleAccountPopupClosed}
+      ></pmc-account-selector-popup>
+    `;
+  }
+
   private _renderCreateStationModal(entity: HassEntity): TemplateResult | typeof nothing {
     if (!this._openCreateStationModal) return nothing;
 
@@ -1907,6 +1975,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         ${this._renderStationInfoPopup(entity)}
         ${this._renderAddMusicPopup(entity)}
         ${this._renderCreateStationModal(entity)}
+        ${this._renderAccountPopup(entity)}
       </ha-card>
     `;
   }

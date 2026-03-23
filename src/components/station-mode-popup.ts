@@ -51,13 +51,33 @@ export class StationModePopup extends BasePopup {
       visibility: visible;
     }
 
+    .popup-head {
+      display: flex;
+      flex-direction: column;
+    }
+
     .popup-header {
-      padding: 12px 16px;
+      padding: 12px 16px 0;
       font-size: 16px;
       font-weight: 600;
       color: var(--primary-text-color);
-      border-bottom: 1px solid var(--pmc-divider);
-      margin-bottom: 8px;
+    }
+
+    .station-id-compact {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 10px;
+      color: var(--secondary-text-color);
+      line-height: 1.4;
+      padding: 0 16px;
+      margin-top: 8px;
+      word-break: break-all;
+    }
+
+    .popup-head-separator {
+      height: 1px;
+      margin: 12px 0 8px;
+      background: var(--pmc-divider);
+      border: 0;
     }
 
     .info-note {
@@ -252,13 +272,33 @@ export class StationModePopup extends BasePopup {
         gap: 4px;
       }
 
+      .popup-head {
+        display: flex;
+        flex-direction: column;
+      }
+
       .popup-header {
-        padding: 12px 16px;
+        padding: 12px 16px 0;
         font-size: 16px;
         font-weight: 600;
         color: var(--primary-text-color);
-        border-bottom: 1px solid var(--divider-color, rgba(0, 0, 0, 0.1));
-        margin-bottom: 8px;
+      }
+
+      .station-id-compact {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 10px;
+        color: var(--secondary-text-color);
+        line-height: 1.4;
+        padding: 0 16px;
+        margin-top: 8px;
+        word-break: break-all;
+      }
+
+      .popup-head-separator {
+        height: 1px;
+        margin: 12px 0 8px;
+        background: var(--divider-color, rgba(0, 0, 0, 0.12));
+        border: 0;
       }
 
       .info-note {
@@ -416,10 +456,16 @@ export class StationModePopup extends BasePopup {
 
   protected renderPopupContent(): TemplateResult {
     return html`
-      <div class="popup-header">
-        ${this.currentStationName ? `Station Mode: ${this.currentStationName}` : 'Station Mode'}
+      <div class="popup-head">
+        <div class="popup-header">
+          ${this.currentStationName ? `Station Mode: ${this.currentStationName}` : 'Station Mode'}
+        </div>
+        ${this.currentStationId
+          ? html`<div class="station-id-compact" title="Station ID">${this.currentStationId}</div>`
+          : nothing}
+        <div class="popup-head-separator" role="presentation"></div>
       </div>
-      
+
       ${this.loading
         ? html`<div class="loading">Loading modes...</div>`
         : this.modes.length === 0
@@ -428,7 +474,7 @@ export class StationModePopup extends BasePopup {
               <div class="info-note">
                 Note: Changing the station mode will restart playback.
               </div>
-              
+
               <div class="modes-list">
                 ${this.modes.map(mode => html`
                   <div 
@@ -450,7 +496,7 @@ export class StationModePopup extends BasePopup {
                   </div>
                 `)}
               </div>
-              
+
               <div class="popup-footer">
                 <button class="button-cancel" @click=${() => this.closePopup()}>
                   Cancel
