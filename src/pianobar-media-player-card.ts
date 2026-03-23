@@ -559,7 +559,9 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const showExplain = hasCurrentSong && supported.includes('explain_song');
     const showUpcoming = isOn && supported.includes('get_upcoming');
     const accounts = (entity.attributes.accounts as Array<{id: string; label: string}>) || [];
-    const showAccountSwitch = accounts.length > 1;
+    const entityHasMultipleAccounts = accounts.length > 1;
+    const overflowShowAccountSwitch =
+      entityHasMultipleAccounts && this._resolvedConfig?.showAccountSwitch !== false;
 
     return html`
       <pmc-overflow-menu
@@ -576,7 +578,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         .showCreateStationOption=${showCreateStation}
         .showRenameOption=${showRename}
         .showDeleteOption=${showDelete}
-        .showAccountSwitch=${showAccountSwitch}
+        .showAccountSwitch=${overflowShowAccountSwitch}
         .isOn=${isOn}
         .disabled=${this._isUnavailable(entity)}
         .buildTime=${__BUILD_TIMESTAMP__}
@@ -826,6 +828,8 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
   // Account switching handlers
   private async _handleOpenAccountPopup(e: CustomEvent): Promise<void> {
+    if (this._resolvedConfig?.showAccountSwitch === false) return;
+
     this._openAccountPopup = false;
     await this.updateComplete;
 
@@ -1741,6 +1745,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
   private _renderAccountPopup(entity: HassEntity): TemplateResult | typeof nothing {
     if (!this._openAccountPopup) return nothing;
+    if (this._resolvedConfig?.showAccountSwitch === false) return nothing;
 
     const accounts = (entity.attributes.accounts as Array<{id: string; label: string}>) || [];
     const currentAccount = entity.attributes.current_account as {id: string; label: string} | undefined;
