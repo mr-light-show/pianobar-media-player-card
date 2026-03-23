@@ -130,6 +130,7 @@ export function resolveConfig(config: PianobarCardConfig): ResolvedConfig {
       showProgressTime: config.showProgressTime ?? preset.showProgressTime,
       showPlaybackControls: config.showPlaybackControls ?? preset.showPlaybackControls,
       showPowerButton: config.showPowerButton ?? preset.showPowerButton,
+      showAccountSwitch: config.showAccountSwitch !== false,
       stationDisplay: config.stationDisplay ?? preset.stationDisplay,
       tallArtworkSize: clampTallArtworkSize(config.tallArtworkSize),
       volume_entity: config.volume_entity,
@@ -156,6 +157,7 @@ export function resolveConfig(config: PianobarCardConfig): ResolvedConfig {
     showProgressTime: preset.showProgressTime,
     showPlaybackControls: preset.showPlaybackControls,
     showPowerButton: preset.showPowerButton,
+    showAccountSwitch: config.showAccountSwitch !== false,
     stationDisplay: preset.stationDisplay,
     tallArtworkSize,
     volume_entity: config.volume_entity,
@@ -221,6 +223,7 @@ export function detectMatchingPreset(config: Partial<PianobarCardConfig>): CardM
       (config.showProgressBar ?? true) === preset.showProgressBar &&
       (config.showProgressTime ?? false) === preset.showProgressTime &&
       (config.showPowerButton ?? false) === preset.showPowerButton &&
+      config.showAccountSwitch !== false &&
       (config.stationDisplay ?? 'hidden') === preset.stationDisplay &&
       (config.tallArtworkSize ?? 80) === (preset.tallArtworkSize ?? 80)
     ) {

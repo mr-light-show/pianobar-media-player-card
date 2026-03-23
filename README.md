@@ -86,6 +86,7 @@ volume_entity: media_player.living_room_speaker  # optional - volume on differen
 | `showSongActions` | boolean | `true` | Show thumbs up/down/snooze button (custom mode only) |
 | `showProgressBar` | boolean | `true` | Show playback progress bar (custom mode only) |
 | `showPlaybackControls` | boolean | `true` | Show play/pause and next buttons (custom mode only) |
+| `showAccountSwitch` | boolean | `true` | When `false`, hide **Switch Account** in the overflow menu (multi-account entities only) |
 | `volume_entity` | string | - | Override volume control to a different media player |
 | `name` | string | - | Custom display name for the card |
 

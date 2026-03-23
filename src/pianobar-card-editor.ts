@@ -339,6 +339,7 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
       showSongActions: isCustomMode ? (this._config?.showSongActions ?? preset.showSongActions) : preset.showSongActions,
       showProgressBar: isCustomMode ? (this._config?.showProgressBar ?? preset.showProgressBar) : preset.showProgressBar,
       showProgressTime: isCustomMode ? (this._config?.showProgressTime ?? preset.showProgressTime) : preset.showProgressTime,
+      showAccountSwitch: this._config?.showAccountSwitch !== false,
       stationDisplay: isCustomMode ? (this._config?.stationDisplay ?? preset.stationDisplay) : preset.stationDisplay,
       tallArtworkSize: effectiveTallSize,
     };
@@ -581,6 +582,7 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
       showSongActions: isCustomMode ? (this._config?.showSongActions ?? preset.showSongActions) : preset.showSongActions,
       showProgressBar: isCustomMode ? (this._config?.showProgressBar ?? preset.showProgressBar) : preset.showProgressBar,
       showProgressTime: isCustomMode ? (this._config?.showProgressTime ?? preset.showProgressTime) : preset.showProgressTime,
+      showAccountSwitch: this._config?.showAccountSwitch !== false,
       stationDisplay: isCustomMode ? (this._config?.stationDisplay ?? preset.stationDisplay) : preset.stationDisplay,
     };
     
@@ -621,6 +623,13 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
     // Check if the entity has stations attribute (Pianobar integration)
     const stations = entity?.attributes?.stations as unknown[];
     return Array.isArray(stations) && stations.length > 0;
+  }
+
+  private _supportsMultipleAccounts(): boolean {
+    if (!this.hass || !this._config?.entity) return false;
+    const entity = this.hass.states[this._config.entity];
+    const accounts = entity?.attributes?.accounts as unknown[];
+    return Array.isArray(accounts) && accounts.length > 1;
   }
 
   private _renderControlsTab(): TemplateResult {
@@ -665,9 +674,11 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
     const reserveDetailsSpace = isCustomMode
       ? (this._config?.reserveDetailsSpace ?? preset.reserveDetailsSpace)
       : preset.reserveDetailsSpace;
+    const showAccountSwitch = this._config?.showAccountSwitch !== false;
 
     // Use fetched supported_actions: if entity has no rating support, force off and disable checkbox
     const supportsRating = this._supportsRating;
+    const supportsMultiAccount = this._supportsMultipleAccounts();
 
     return html`
       ${this._renderCheckbox('showPlaybackControls', 'Show playback controls', showPlaybackControls)}
@@ -678,6 +689,14 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
       ${this._renderCheckbox('showProgressTime', 'Show progress time', showProgressTime, true, !showProgressBar)}
 
       ${this._renderCheckbox('showVolumeControl', 'Show volume control', showVolumeControl)}
+
+      ${supportsMultiAccount
+        ? this._renderCheckbox(
+            'showAccountSwitch',
+            'Show Switch Account in menu',
+            showAccountSwitch
+          )
+        : html`<p class="helper-text">Switch Account appears when the player has multiple Pandora accounts.</p>`}
 
       ${this._renderCheckbox('showDetails', 'Show details', showDetails)}
       ${this._renderCheckbox('showTitle', 'Show title', showTitle, true, !showDetails)}

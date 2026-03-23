@@ -152,6 +152,8 @@ export interface PianobarCardConfig {
   showProgressTime?: boolean;
   showPlaybackControls?: boolean;
   showPowerButton?: boolean;
+  /** When false, hide overflow "Switch Account" for multi-account entities. Default true. */
+  showAccountSwitch?: boolean;
   stationDisplay?: StationDisplayMode;
   /** Tall layout only: artwork width as percentage of card (50–100, default 80). */
   tallArtworkSize?: number;
@@ -179,6 +181,7 @@ export interface ResolvedConfig {
   showProgressTime: boolean;
   showPlaybackControls: boolean;
   showPowerButton: boolean;
+  showAccountSwitch: boolean;
   stationDisplay: StationDisplayMode;
   /** Tall layout only: resolved artwork width percentage (50–100). */
   tallArtworkSize: number;
