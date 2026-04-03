@@ -2,6 +2,7 @@ import { html, css, nothing, TemplateResult, CSSResultGroup } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { BasePopup } from './base-popup';
 import { Station } from '../types';
+import { cardLocalize } from '../i18n';
 
 @customElement('pmc-quickmix-popup')
 export class QuickMixPopup extends BasePopup {
@@ -317,10 +318,10 @@ export class QuickMixPopup extends BasePopup {
     const selectableStations = this.stations.filter(s => !s.isQuickMix);
 
     return html`
-      <div class="header">Select QuickMix Stations</div>
+      <div class="header">${cardLocalize(this.hass, 'quickmix.title')}</div>
       
       ${selectableStations.length === 0
-        ? html`<div class="no-stations">No stations available</div>`
+        ? html`<div class="no-stations">${cardLocalize(this.hass, 'quickmix.no_stations')}</div>`
         : html`
             <div class="list-container">
               ${selectableStations.map(
@@ -344,10 +345,10 @@ export class QuickMixPopup extends BasePopup {
             
             <div class="footer">
               <button class="cancel" @click=${() => this.handleCancel()} ?disabled=${this.disabled}>
-                Cancel
+                ${cardLocalize(this.hass, 'common.cancel')}
               </button>
               <button class="save" @click=${() => this.handleSave()} ?disabled=${this.disabled}>
-                Save
+                ${cardLocalize(this.hass, 'quickmix.save')}
               </button>
             </div>
           `}

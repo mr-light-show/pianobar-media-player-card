@@ -166,6 +166,10 @@ After deploying, add the resource in Home Assistant:
 
 **Tip:** After each deploy, update the `?v=` parameter to the new timestamp to bust the browser cache.
 
+## Localization
+
+Card UI strings are resolved in `src/i18n.ts`: bundled `src/translations/en.json` supplies English defaults, and the parent card passes `hass` into child components so the same helper can later delegate to `hass.localize` for integration keys. Add more locale JSON files and merge by `hass.locale.language` when you need additional languages.
+
 ## License
 
 MIT License - see LICENSE file for details.

@@ -1,6 +1,7 @@
 import { LitElement, html, css, nothing, PropertyValues, TemplateResult, CSSResultGroup } from 'lit';
 import { property, state } from 'lit/decorators.js';
 import { render } from 'lit';
+import type { HomeAssistant } from '../types';
 
 export interface AnchorPosition {
   left: number;
@@ -14,6 +15,9 @@ export interface AnchorPosition {
  * Provides common state management, positioning logic, and event handling.
  */
 export abstract class BasePopup extends LitElement {
+  /** Passed from parent card for `cardLocalize` / future `hass.localize`. */
+  @property({ attribute: false }) hass?: HomeAssistant;
+
   // Common public properties
   @property({ type: Boolean }) disabled = false;
   @property({ type: Boolean }) externalOpen = false;

@@ -2,6 +2,7 @@ import { html, css, nothing, TemplateResult, CSSResultGroup } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { CenteredPopup } from './centered-popup';
 import { Station } from '../types';
+import { cardLocalize, cardLocalizeFormat } from '../i18n';
 
 interface SearchResult {
   name?: string;
@@ -449,10 +450,10 @@ export class AddMusicPopup extends CenteredPopup {
     const selectableStations = this.stations.filter(s => !s.isQuickMix);
 
     return html`
-      <div class="dialog-header">Add Music to Station</div>
+      <div class="dialog-header">${cardLocalize(this.hass, 'add_music.title')}</div>
       <div class="dialog-body">
         ${selectableStations.length === 0
-          ? html`<div class="no-stations">No stations available</div>`
+          ? html`<div class="no-stations">${cardLocalize(this.hass, 'add_music.no_stations')}</div>`
           : html`
               <div class="station-list">
                 ${selectableStations.map(
@@ -477,10 +478,10 @@ export class AddMusicPopup extends CenteredPopup {
       </div>
       <div class="dialog-footer">
         <button class="cancel" @click=${() => this._handleCancel()} ?disabled=${this.disabled}>
-          Cancel
+          ${cardLocalize(this.hass, 'common.cancel')}
         </button>
         <button class="confirm" @click=${() => this._handleNext()} ?disabled=${!this._selectedStationId || this.disabled}>
-          Next
+          ${cardLocalize(this.hass, 'rename.next')}
         </button>
       </div>
     `;
@@ -490,7 +491,7 @@ export class AddMusicPopup extends CenteredPopup {
     const hasResults = this.searchResults.categories.length > 0;
 
     return html`
-      <div class="dialog-header">Add Music to ${this._selectedStationName}</div>
+      <div class="dialog-header">${cardLocalizeFormat(this.hass, 'add_music.title_with_station', { name: this._selectedStationName })}</div>
       <div class="dialog-body">
         <div class="search-section">
           <div class="search-input-container">
@@ -498,7 +499,7 @@ export class AddMusicPopup extends CenteredPopup {
               type="text"
               class="search-input"
               id="add-music-search-input"
-              placeholder="Search for artists or songs..."
+              placeholder=${cardLocalize(this.hass, 'create_station.placeholder_search_long')}
               .value=${this._searchQuery}
               ?disabled=${this.disabled || this.searchLoading}
               @input=${(e: Event) => {
@@ -529,17 +530,17 @@ export class AddMusicPopup extends CenteredPopup {
               ?disabled=${!this._searchQuery.trim() || this.disabled || this.searchLoading}
               @click=${() => this._handleSearch()}
             >
-              ${this.searchLoading ? 'Searching...' : 'Search'}
+              ${this.searchLoading ? cardLocalize(this.hass, 'common.searching') : cardLocalize(this.hass, 'common.search')}
             </button>
           </div>
         </div>
 
         ${this.searchLoading
-          ? html`<div class="loading">Searching...</div>`
+          ? html`<div class="loading">${cardLocalize(this.hass, 'add_music.searching')}</div>`
           : !this._searchPerformed
-          ? html`<div class="no-results">Enter a search query to find music</div>`
+          ? html`<div class="no-results">${cardLocalize(this.hass, 'add_music.enter_query')}</div>`
           : !hasResults
-          ? html`<div class="no-results">No results found for "${this._searchQuery}"</div>`
+          ? html`<div class="no-results">${cardLocalizeFormat(this.hass, 'add_music.no_results', { query: this._searchQuery })}</div>`
           : html`
               <div class="category-list">
                 ${this.searchResults.categories.map(
@@ -592,13 +593,13 @@ export class AddMusicPopup extends CenteredPopup {
       </div>
       <div class="dialog-footer">
         <button class="back" @click=${() => this._handleBack()} ?disabled=${this.disabled}>
-          Back
+          ${cardLocalize(this.hass, 'common.back')}
         </button>
         <button class="cancel" @click=${() => this._handleCancel()} ?disabled=${this.disabled}>
-          Cancel
+          ${cardLocalize(this.hass, 'common.cancel')}
         </button>
         <button class="confirm" @click=${() => this._handleAddMusic()} ?disabled=${!this._selectedMusicId || this.disabled}>
-          Add Music
+          ${cardLocalize(this.hass, 'add_music.add_button')}
         </button>
       </div>
     `;

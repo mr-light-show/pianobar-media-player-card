@@ -1,6 +1,7 @@
 import { html, css, nothing, PropertyValues, TemplateResult, CSSResultGroup } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { BasePopup } from './base-popup';
+import { cardLocalize } from '../i18n';
 
 interface Account {
   id: string;
@@ -195,7 +196,7 @@ export class AccountSelectorPopup extends BasePopup {
     const noChange = !this._selectedAccountId || this._selectedAccountId === this.currentAccountId;
 
     return html`
-      <div class="popup-header">Switch Account</div>
+      <div class="popup-header">${cardLocalize(this.hass, 'account.title')}</div>
       
       <div class="accounts-list">
         ${this.accounts.map(acct => html`
@@ -212,21 +213,21 @@ export class AccountSelectorPopup extends BasePopup {
             >
             <ha-icon class="account-icon" icon="mdi:account-circle"></ha-icon>
             <span class="account-name">${acct.label}</span>
-            ${acct.id === this.currentAccountId ? html`<span class="account-active-badge">Active</span>` : nothing}
+            ${acct.id === this.currentAccountId ? html`<span class="account-active-badge">${cardLocalize(this.hass, 'account.active')}</span>` : nothing}
           </div>
         `)}
       </div>
       
       <div class="popup-footer">
         <button class="button-cancel" @click=${() => this.closePopup()}>
-          Cancel
+          ${cardLocalize(this.hass, 'common.cancel')}
         </button>
         <button 
           class="button-confirm"
           ?disabled=${noChange}
           @click=${() => this._handleConfirm()}
         >
-          Switch
+          ${cardLocalize(this.hass, 'account.switch_button')}
         </button>
       </div>
     `;
