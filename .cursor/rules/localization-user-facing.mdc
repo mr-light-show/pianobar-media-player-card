@@ -30,6 +30,7 @@ When the same user-facing **concept** appears in more than one repo, use the **s
 
 - Use `translation_key` on entities/devices; `translation_domain` + `translation_key` on service errors; translated browse/media titles where applicable.
 - Keep `services.yaml` lean; long prose belongs in the `services` section of translations.
+- **Hassfest:** `translations/en.json` must match Home Assistant’s integration string schema; ad hoc top-level sections fail CI. Use **`common`** with slug keys for strings that do not fit `entity` / `services` / `config` (see `remote-pianobar-ha` integration).
 
 ## `remote_pianobar_card` (Lovelace card)
 
