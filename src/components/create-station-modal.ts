@@ -2,6 +2,7 @@ import { html, css, nothing, TemplateResult, CSSResultGroup } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { CenteredPopup } from './centered-popup';
 import { SearchResults } from '../types';
+import { cardLocalize, cardLocalizeFormat } from '../i18n';
 
 interface Genre {
   name: string;
@@ -522,7 +523,7 @@ export class CreateStationModal extends CenteredPopup {
             type="text"
             class="search-input"
             id="search-input"
-            placeholder="Search for artist or song..."
+            placeholder=${cardLocalize(this.hass, 'create_station.placeholder_search')}
             .value=${this._searchQuery}
             ?disabled=${this.disabled || this.searchLoading}
             @input=${(e: Event) => {
@@ -552,7 +553,7 @@ export class CreateStationModal extends CenteredPopup {
             ?disabled=${searchButtonDisabled}
             @click=${() => this._handleSearch()}
           >
-            ${this.searchLoading ? 'Searching...' : 'Search'}
+            ${this.searchLoading ? cardLocalize(this.hass, 'create_station.searching') : cardLocalize(this.hass, 'common.search')}
           </button>
         </div>
 
@@ -561,7 +562,7 @@ export class CreateStationModal extends CenteredPopup {
             type="text"
             class="shared-input"
             id="shared-input"
-            placeholder="Enter shared station ID (digits only)"
+            placeholder=${cardLocalize(this.hass, 'create_station.placeholder_shared')}
             .value=${this._sharedStationId}
             ?disabled=${this.disabled}
             @input=${(e: Event) => {
@@ -593,20 +594,20 @@ export class CreateStationModal extends CenteredPopup {
             ?disabled=${!this._sharedStationId.trim() || this.disabled}
             @click=${() => this._handleAddSharedStation()}
           >
-            Add
+            ${cardLocalize(this.hass, 'create_station.add_short')}
           </button>
         </div>
 
         <div class="divider"></div>
 
-        <div class="section-label">Or create from:</div>
+        <div class="section-label">${cardLocalize(this.hass, 'create_station.section_or_create')}</div>
 
         <div class="select-options">
           ${this.currentTrackToken ? html`
             <button class="option-button" @click=${() => this._handleSelectArtist()} ?disabled=${this.disabled}>
               <div class="option-main">
                 <ha-icon icon="mdi:account-music"></ha-icon>
-                <span>The current Artist</span>
+                <span>${cardLocalize(this.hass, 'create_station.option_artist')}</span>
               </div>
               ${this.currentArtistName ? html`<div class="option-detail">${this.currentArtistName}</div>` : nothing}
             </button>
@@ -614,7 +615,7 @@ export class CreateStationModal extends CenteredPopup {
             <button class="option-button" @click=${() => this._handleSelectSong()} ?disabled=${this.disabled}>
               <div class="option-main">
                 <ha-icon icon="mdi:music-note"></ha-icon>
-                <span>The current Song</span>
+                <span>${cardLocalize(this.hass, 'create_station.option_song')}</span>
               </div>
               ${this.currentSongName ? html`<div class="option-detail">${this.currentSongName}</div>` : nothing}
             </button>
@@ -623,9 +624,9 @@ export class CreateStationModal extends CenteredPopup {
           <button class="option-button" @click=${() => this._handleBrowseGenres()} ?disabled=${this.disabled}>
             <div class="option-main">
               <ha-icon icon="mdi:bookshelf"></ha-icon>
-              <span>Genre</span>
+              <span>${cardLocalize(this.hass, 'create_station.option_genre')}</span>
             </div>
-            <div class="option-detail">Select a genre</div>
+            <div class="option-detail">${cardLocalize(this.hass, 'create_station.genre_detail')}</div>
           </button>
         </div>
       </div>
@@ -640,26 +641,26 @@ export class CreateStationModal extends CenteredPopup {
             <input
               type="text"
               class="search-input"
-              placeholder="Search for artists or songs..."
+              placeholder=${cardLocalize(this.hass, 'create_station.placeholder_search_long')}
               .value=${this._searchQuery}
               disabled
             />
             <button class="search-button" disabled>
-              Searching...
+              ${cardLocalize(this.hass, 'create_station.searching')}
             </button>
           </div>
         </div>
         <div class="loading">
           <div class="loading-spinner"></div>
-          <div>Searching for "${this._searchQuery}"...</div>
+          <div>${cardLocalizeFormat(this.hass, 'create_station.searching_for', { query: this._searchQuery })}</div>
         </div>
       </div>
       <div class="dialog-footer">
         <button class="back" @click=${() => this._handleBackToSelect()}>
-          Back
+          ${cardLocalize(this.hass, 'common.back')}
         </button>
         <button class="cancel" @click=${(e: Event) => this._handleCancel(e)}>
-          Cancel
+          ${cardLocalize(this.hass, 'common.cancel')}
         </button>
       </div>
     `;
@@ -680,9 +681,9 @@ export class CreateStationModal extends CenteredPopup {
     return html`
       <div class="dialog-body">
         ${this.searchLoading
-          ? html`<div class="loading">Searching...</div>`
+          ? html`<div class="loading">${cardLocalize(this.hass, 'create_station.searching')}</div>`
           : !hasResults
-          ? html`<div class="no-results">No results found for "${this._searchQuery}"</div>`
+          ? html`<div class="no-results">${cardLocalizeFormat(this.hass, 'create_station.no_results', { query: this._searchQuery })}</div>`
           : html`
               <div class="category-list">
                 ${this.searchResults.categories.map(
@@ -714,7 +715,7 @@ export class CreateStationModal extends CenteredPopup {
                                             @change=${() => this._handleResultSelect(result.musicId)}
                                           >
                                           <span class="result-item-name">
-                                            ${displayName}${result.artist ? html` <span class="result-item-artist">by ${result.artist}</span>` : nothing}
+                                            ${displayName}${result.artist ? html` <span class="result-item-artist">${cardLocalizeFormat(this.hass, 'common.by_artist', { artist: result.artist })}</span>` : nothing}
                                           </span>
                                         </label>
                                       </div>
@@ -733,13 +734,13 @@ export class CreateStationModal extends CenteredPopup {
       </div>
       <div class="dialog-footer">
         <button class="back" @click=${() => this._handleBackToSelect()} ?disabled=${this.disabled}>
-          Back
+          ${cardLocalize(this.hass, 'common.back')}
         </button>
         <button class="cancel" @click=${(e: Event) => this._handleCancel(e)} ?disabled=${this.disabled}>
-          Cancel
+          ${cardLocalize(this.hass, 'common.cancel')}
         </button>
         <button class="create" @click=${() => this._handleCreateFromSearch()} ?disabled=${!this._selectedMusicId || this.disabled}>
-          Create Station
+          ${cardLocalize(this.hass, 'create_station.create')}
         </button>
       </div>
     `;
@@ -751,9 +752,9 @@ export class CreateStationModal extends CenteredPopup {
     return html`
       <div class="dialog-body">
         ${this.genreLoading
-          ? html`<div class="loading">Loading genres...</div>`
+          ? html`<div class="loading">${cardLocalize(this.hass, 'create_station.loading_genres')}</div>`
           : !hasGenres
-          ? html`<div class="no-results">No genres available</div>`
+          ? html`<div class="no-results">${cardLocalize(this.hass, 'create_station.no_genres')}</div>`
           : html`
               <div class="genre-list">
                 ${this.genreCategories.map(
@@ -801,13 +802,13 @@ export class CreateStationModal extends CenteredPopup {
       </div>
       <div class="dialog-footer">
         <button class="back" @click=${() => this._handleBackToSelect()} ?disabled=${this.disabled}>
-          Back
+          ${cardLocalize(this.hass, 'common.back')}
         </button>
         <button class="cancel" @click=${(e: Event) => this._handleCancel(e)} ?disabled=${this.disabled}>
-          Cancel
+          ${cardLocalize(this.hass, 'common.cancel')}
         </button>
         <button class="create" @click=${() => this._handleCreateFromGenre()} ?disabled=${!this._selectedMusicId || this.disabled}>
-          Create Station
+          ${cardLocalize(this.hass, 'create_station.create')}
         </button>
       </div>
     `;
@@ -827,7 +828,7 @@ export class CreateStationModal extends CenteredPopup {
 
     return html`
       <div class="dialog">
-        <div class="dialog-header">Create Station</div>
+        <div class="dialog-header">${cardLocalize(this.hass, 'create_station.title')}</div>
         ${content}
       </div>
     `;

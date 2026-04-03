@@ -16,6 +16,7 @@ import {
   SearchResults,
   GenreCategory,
 } from './types';
+import { cardLocalize } from './i18n';
 
 // Import components
 import './components/playback-controls';
@@ -343,7 +344,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const imageUrl = entity.attributes.media_image_url || entity.attributes.entity_picture;
 
     if (imageUrl) {
-      return html`<img class="artwork" src="${imageUrl}" alt="Album artwork" />`;
+      return html`<img class="artwork" src="${imageUrl}" alt=${cardLocalize(this.hass, 'card.album_art_alt')} />`;
     }
 
     return html`
@@ -357,7 +358,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const showDetails = this._resolvedConfig?.showDetails ?? true;
     if (!showDetails) return nothing;
 
-    const title = entity.attributes.media_title || 'No media';
+    const title = entity.attributes.media_title || cardLocalize(this.hass, 'card.no_media');
     const artist = entity.attributes.media_artist || '';
     const album = entity.attributes.media_album_name || '';
 
@@ -389,7 +390,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         ${showStationInfo && (displayStationName || stations.length > 0) ? html`
           <p class="station-info clickable" @click=${this._handleOpenStationPopup}>
             <ha-icon icon="${displayStationName ? stationIcon : 'mdi:radio'}"></ha-icon>
-            <span>${displayStationName || 'Select station'}</span>
+            <span>${displayStationName || cardLocalize(this.hass, 'card.select_station')}</span>
           </p>
         ` : nothing}
       </div>
@@ -445,6 +446,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
     return html`
       <pmc-volume-slider
+        .hass=${this.hass}
         .volume=${volume}
         .muted=${muted}
         .disabled=${unavailable}
@@ -466,6 +468,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
     return html`
       <pmc-playback-controls
+        .hass=${this.hass}
         .playing=${playing}
         .disabled=${unavailable}
         .showPower=${showPower}
@@ -496,6 +499,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
     return html`
       <pmc-song-actions-menu
+        .hass=${this.hass}
         .rating=${rating}
         .disabled=${unavailable}
         .showLove=${supportsLove}
@@ -530,6 +534,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
     return html`
       <pmc-station-selector
+        .hass=${this.hass}
         .stations=${stations}
         .currentStationId=${currentStationId}
         .currentStationName=${currentStationName}
@@ -566,6 +571,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     return html`
       <pmc-overflow-menu
         class="overflow-menu"
+        .hass=${this.hass}
         .entityId=${entity.entity_id}
         .showStationOption=${hasStations}
         .showRatingsOption=${hasRatings}
@@ -624,7 +630,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         return_response: true,
       }) as any;
 
-      const explanation = response?.response?.explanation || 'No explanation available';
+      const explanation = response?.response?.explanation || cardLocalize(this.hass, 'card.no_explanation');
       
       // Show toast notification using Home Assistant's notification system
       const event = new CustomEvent('hass-notification', {
@@ -641,7 +647,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       // Show error toast
       const event = new CustomEvent('hass-notification', {
         detail: {
-          message: 'Failed to get song explanation',
+          message: cardLocalize(this.hass, 'card.toast_failed_explain'),
           duration: 3000,
         },
         bubbles: true,
@@ -713,7 +719,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       // Show error toast
       const event = new CustomEvent('hass-notification', {
         detail: {
-          message: 'Failed to get upcoming songs',
+          message: cardLocalize(this.hass, 'card.toast_failed_upcoming'),
           duration: 3000,
         },
         bubbles: true,
@@ -765,7 +771,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       // Show error toast
       const event = new CustomEvent('hass-notification', {
         detail: {
-          message: 'Failed to get station modes',
+          message: cardLocalize(this.hass, 'card.toast_failed_station_modes'),
           duration: 3000,
         },
         bubbles: true,
@@ -804,7 +810,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       // Show success toast
       const event = new CustomEvent('hass-notification', {
         detail: {
-          message: 'Station mode updated',
+          message: cardLocalize(this.hass, 'card.toast_station_mode_updated'),
           duration: 2000,
         },
         bubbles: true,
@@ -816,7 +822,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       // Show error toast
       const event = new CustomEvent('hass-notification', {
         detail: {
-          message: 'Failed to set station mode',
+          message: cardLocalize(this.hass, 'card.toast_failed_set_station_mode'),
           duration: 3000,
         },
         bubbles: true,
@@ -861,7 +867,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       console.error('Error switching account:', err);
       const event = new CustomEvent('hass-notification', {
         detail: {
-          message: 'Failed to switch account',
+          message: cardLocalize(this.hass, 'card.toast_failed_switch_account'),
           duration: 3000,
         },
         bubbles: true,
@@ -905,7 +911,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       // Show success toast
       const event = new CustomEvent('hass-notification', {
         detail: {
-          message: 'QuickMix settings updated',
+          message: cardLocalize(this.hass, 'card.toast_quickmix_updated'),
           duration: 2000,
         },
         bubbles: true,
@@ -919,7 +925,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       console.error('Error updating QuickMix:', err);
       const errorEvent = new CustomEvent('hass-notification', {
         detail: {
-          message: 'Error updating QuickMix settings',
+          message: cardLocalize(this.hass, 'card.error_quickmix'),
           duration: 3000,
         },
         bubbles: true,
@@ -983,7 +989,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       console.error('Error renaming station:', err);
       const errorEvent = new CustomEvent('hass-notification', {
         detail: {
-          message: 'Error renaming station',
+          message: cardLocalize(this.hass, 'card.error_rename'),
           duration: 3000,
         },
         bubbles: true,
@@ -1041,7 +1047,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       console.error('Error deleting station:', err);
       const errorEvent = new CustomEvent('hass-notification', {
         detail: {
-          message: 'Error deleting station',
+          message: cardLocalize(this.hass, 'card.error_delete_station'),
           duration: 3000,
         },
         bubbles: true,
@@ -1090,7 +1096,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       this._stationInfo = null;
       const errorEvent = new CustomEvent('hass-notification', {
         detail: {
-          message: 'Error loading station info',
+          message: cardLocalize(this.hass, 'card.error_station_info'),
           duration: 3000,
         },
         bubbles: true,
@@ -1129,7 +1135,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       // Show success toast
       const event = new CustomEvent('hass-notification', {
         detail: {
-          message: 'Seed deleted',
+          message: cardLocalize(this.hass, 'card.toast_seed_deleted'),
           duration: 2000,
         },
         bubbles: true,
@@ -1143,7 +1149,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       console.error('Error deleting seed:', err);
       const errorEvent = new CustomEvent('hass-notification', {
         detail: {
-          message: 'Error deleting seed',
+          message: cardLocalize(this.hass, 'card.error_delete_seed'),
           duration: 3000,
         },
         bubbles: true,
@@ -1173,7 +1179,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       // Show success toast
       const event = new CustomEvent('hass-notification', {
         detail: {
-          message: 'Feedback deleted',
+          message: cardLocalize(this.hass, 'card.toast_feedback_deleted'),
           duration: 2000,
         },
         bubbles: true,
@@ -1187,7 +1193,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       console.error('Error deleting feedback:', err);
       const errorEvent = new CustomEvent('hass-notification', {
         detail: {
-          message: 'Error deleting feedback',
+          message: cardLocalize(this.hass, 'card.error_delete_feedback'),
           duration: 3000,
         },
         bubbles: true,
@@ -1247,7 +1253,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       this._searchResults = { categories: [] };
       const errorEvent = new CustomEvent('hass-notification', {
         detail: {
-          message: 'Error searching for music',
+          message: cardLocalize(this.hass, 'card.error_search_music'),
           duration: 3000,
         },
         bubbles: true,
@@ -1279,7 +1285,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       // Show success toast
       const event = new CustomEvent('hass-notification', {
         detail: {
-          message: 'Music added to station',
+          message: cardLocalize(this.hass, 'card.toast_music_added'),
           duration: 2000,
         },
         bubbles: true,
@@ -1293,7 +1299,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       console.error('Error adding music:', err);
       const errorEvent = new CustomEvent('hass-notification', {
         detail: {
-          message: 'Error adding music to station',
+          message: cardLocalize(this.hass, 'card.error_add_music'),
           duration: 3000,
         },
         bubbles: true,
@@ -1343,14 +1349,14 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         }
       );
       this.dispatchEvent(new CustomEvent('hass-notification', {
-        detail: { message: 'Station created from current song', duration: 2000 },
+        detail: { message: cardLocalize(this.hass, 'card.toast_station_created_song'), duration: 2000 },
         bubbles: true,
         composed: true,
       }));
     } catch (err) {
       console.error('Error creating station:', err);
       this.dispatchEvent(new CustomEvent('hass-notification', {
-        detail: { message: 'Error creating station', duration: 3000 },
+        detail: { message: cardLocalize(this.hass, 'card.error_create_station'), duration: 3000 },
         bubbles: true,
         composed: true,
       }));
@@ -1374,14 +1380,14 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         }
       );
       this.dispatchEvent(new CustomEvent('hass-notification', {
-        detail: { message: 'Station created from current artist', duration: 2000 },
+        detail: { message: cardLocalize(this.hass, 'card.toast_station_created_artist'), duration: 2000 },
         bubbles: true,
         composed: true,
       }));
     } catch (err) {
       console.error('Error creating station:', err);
       this.dispatchEvent(new CustomEvent('hass-notification', {
-        detail: { message: 'Error creating station', duration: 3000 },
+        detail: { message: cardLocalize(this.hass, 'card.error_create_station'), duration: 3000 },
         bubbles: true,
         composed: true,
       }));
@@ -1441,7 +1447,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       console.error('[CARD] Error searching:', err);
       this._searchResults = { categories: [] };
       this.dispatchEvent(new CustomEvent('hass-notification', {
-        detail: { message: 'Error searching for music', duration: 3000 },
+        detail: { message: cardLocalize(this.hass, 'card.error_search_music'), duration: 3000 },
         bubbles: true,
         composed: true,
       }));
@@ -1473,7 +1479,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       console.error('Error fetching genres:', err);
       this._genreCategories = [];
       this.dispatchEvent(new CustomEvent('hass-notification', {
-        detail: { message: 'Error loading genres', duration: 3000 },
+        detail: { message: cardLocalize(this.hass, 'card.error_genres'), duration: 3000 },
         bubbles: true,
         composed: true,
       }));
@@ -1498,14 +1504,14 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         }
       );
       this.dispatchEvent(new CustomEvent('hass-notification', {
-        detail: { message: 'Station created', duration: 2000 },
+        detail: { message: cardLocalize(this.hass, 'card.toast_station_created'), duration: 2000 },
         bubbles: true,
         composed: true,
       }));
     } catch (err) {
       console.error('Error creating station:', err);
       this.dispatchEvent(new CustomEvent('hass-notification', {
-        detail: { message: 'Error creating station', duration: 3000 },
+        detail: { message: cardLocalize(this.hass, 'card.error_create_station'), duration: 3000 },
         bubbles: true,
         composed: true,
       }));
@@ -1528,14 +1534,14 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         }
       );
       this.dispatchEvent(new CustomEvent('hass-notification', {
-        detail: { message: 'Shared station added', duration: 2000 },
+        detail: { message: cardLocalize(this.hass, 'card.toast_shared_station_added'), duration: 2000 },
         bubbles: true,
         composed: true,
       }));
     } catch (err) {
       console.error('Error adding shared station:', err);
       this.dispatchEvent(new CustomEvent('hass-notification', {
-        detail: { message: 'Error adding shared station', duration: 3000 },
+        detail: { message: cardLocalize(this.hass, 'card.error_add_shared'), duration: 3000 },
         bubbles: true,
         composed: true,
       }));
@@ -1561,6 +1567,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
     return html`
       <pmc-station-selector
+        .hass=${this.hass}
         .stations=${stations}
         .currentStationId=${currentStationId}
         .currentStationName=${currentStationName}
@@ -1591,6 +1598,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
     return html`
       <pmc-song-actions-menu
+        .hass=${this.hass}
         .rating=${rating}
         .disabled=${unavailable}
         .showLove=${supportsLove}
@@ -1613,6 +1621,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
     return html`
       <pmc-upcoming-songs-popup
+        .hass=${this.hass}
         .externalOpen=${this._upcomingPopupOpen}
         .anchorPosition=${this._popupAnchorPosition}
         .songs=${this._upcomingSongs}
@@ -1632,6 +1641,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
     return html`
       <pmc-station-mode-popup
+        .hass=${this.hass}
         .externalOpen=${this._stationModePopupOpen}
         .anchorPosition=${this._popupAnchorPosition}
         .currentStationId=${stationId}
@@ -1652,6 +1662,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
     return html`
       <pmc-quickmix-popup
+        .hass=${this.hass}
         .stations=${stations}
         .disabled=${unavailable}
         .externalOpen=${this._openQuickMixPopup}
@@ -1670,6 +1681,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
     return html`
       <pmc-rename-dialog
+        .hass=${this.hass}
         .stations=${stations}
         .disabled=${unavailable}
         .externalOpen=${this._openRenameDialog}
@@ -1688,6 +1700,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
     return html`
       <pmc-delete-dialog
+        .hass=${this.hass}
         .stations=${stations}
         .disabled=${unavailable}
         .externalOpen=${this._openDeleteDialog}
@@ -1708,6 +1721,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
     return html`
       <pmc-station-info-popup
+        .hass=${this.hass}
         .currentStationId=${stationId}
         .currentStationName=${stationName}
         .stationInfo=${this._stationInfo}
@@ -1730,6 +1744,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
     return html`
       <pmc-add-music-popup
+        .hass=${this.hass}
         .stations=${stations}
         .searchResults=${this._searchResults}
         .searchLoading=${this._searchLoading}
@@ -1753,6 +1768,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
     return html`
       <pmc-account-selector-popup
+        .hass=${this.hass}
         .externalOpen=${this._openAccountPopup}
         .anchorPosition=${this._popupAnchorPosition}
         .accounts=${accounts}
@@ -1774,6 +1790,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     return html`
       <pmc-create-station-modal
         ${ref(this._createStationModalRef)}
+        .hass=${this.hass}
         .currentSongName=${currentSongName}
         .currentArtistName=${currentArtistName}
         .currentTrackToken=${currentTrackToken}
@@ -1811,7 +1828,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     return html`
       <div class="station-pill" @click=${this._handleOpenStationPopup}>
         <ha-icon icon="${displayStationName ? stationIcon : 'mdi:radio'}"></ha-icon>
-        <span>${displayStationName || 'Select station'}</span>
+        <span>${displayStationName || cardLocalize(this.hass, 'card.select_station')}</span>
       </div>
     `;
   }

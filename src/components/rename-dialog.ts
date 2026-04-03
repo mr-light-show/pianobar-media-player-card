@@ -2,6 +2,7 @@ import { html, css, nothing, TemplateResult, CSSResultGroup } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { CenteredPopup } from './centered-popup';
 import { Station } from '../types';
+import { cardLocalize, cardLocalizeFormat } from '../i18n';
 
 @customElement('pmc-rename-dialog')
 export class RenameDialog extends CenteredPopup {
@@ -262,10 +263,10 @@ export class RenameDialog extends CenteredPopup {
     const selectableStations = this.stations.filter(s => !s.isQuickMix);
 
     return html`
-      <div class="dialog-header">Rename Station</div>
+      <div class="dialog-header">${cardLocalize(this.hass, 'rename.title')}</div>
       <div class="dialog-body">
         ${selectableStations.length === 0
-          ? html`<div class="no-stations">No stations available to rename</div>`
+          ? html`<div class="no-stations">${cardLocalize(this.hass, 'rename.no_stations')}</div>`
           : html`
               <div class="station-list">
                 ${selectableStations.map(
@@ -290,10 +291,10 @@ export class RenameDialog extends CenteredPopup {
       </div>
       <div class="dialog-footer">
         <button class="cancel" @click=${() => this._handleCancel()} ?disabled=${this.disabled}>
-          Cancel
+          ${cardLocalize(this.hass, 'rename.cancel')}
         </button>
         <button class="confirm" @click=${() => this._handleNext()} ?disabled=${!this._selectedStationId || this.disabled}>
-          Next
+          ${cardLocalize(this.hass, 'rename.next')}
         </button>
       </div>
     `;
@@ -303,18 +304,18 @@ export class RenameDialog extends CenteredPopup {
     const isChanged = this._newName.trim() && this._newName !== this._selectedStationName;
 
     return html`
-      <div class="dialog-header">Rename: ${this._selectedStationName}</div>
+      <div class="dialog-header">${cardLocalizeFormat(this.hass, 'rename.title_named', { name: this._selectedStationName })}</div>
       <div class="dialog-body">
         <div class="name-input-section">
           <div class="current-station">
-            Current name: <strong>${this._selectedStationName}</strong>
+            ${cardLocalize(this.hass, 'rename.current_name')} <strong>${this._selectedStationName}</strong>
           </div>
           
           <input
             type="text"
             class="name-input"
             id="rename-input"
-            placeholder="Enter new station name"
+            placeholder=${cardLocalize(this.hass, 'rename.placeholder_new_name')}
             .value=${this._newName}
             ?disabled=${this.disabled}
             @input=${(e: Event) => {
@@ -342,19 +343,19 @@ export class RenameDialog extends CenteredPopup {
           />
           
           <div class="info-note">
-            Note: Pandora may not allow some stations to be renamed.
+            ${cardLocalize(this.hass, 'rename.note_pandora')}
           </div>
         </div>
       </div>
       <div class="dialog-footer">
         <button class="back" @click=${() => this._handleBack()} ?disabled=${this.disabled}>
-          Back
+          ${cardLocalize(this.hass, 'common.back')}
         </button>
         <button class="cancel" @click=${() => this._handleCancel()} ?disabled=${this.disabled}>
-          Cancel
+          ${cardLocalize(this.hass, 'rename.cancel')}
         </button>
         <button class="confirm" @click=${() => this._handleRename()} ?disabled=${!isChanged || this.disabled}>
-          Rename
+          ${cardLocalize(this.hass, 'rename.rename')}
         </button>
       </div>
     `;

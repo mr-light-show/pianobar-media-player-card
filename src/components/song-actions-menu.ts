@@ -1,6 +1,7 @@
 import { html, css, nothing, TemplateResult, CSSResultGroup } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { BasePopup } from './base-popup';
+import { cardLocalize } from '../i18n';
 
 @customElement('pmc-song-actions-menu')
 export class SongActionsMenu extends BasePopup {
@@ -224,19 +225,19 @@ export class SongActionsMenu extends BasePopup {
           @click=${() => this.handleLove()}
         >
           <ha-icon icon="mdi:thumb-up"></ha-icon>
-          <span>Love Song</span>
+          <span>${cardLocalize(this.hass, 'song.love')}</span>
         </button>
       ` : nothing}
       ${this.showBan ? html`
         <button class="action-button ban" @click=${() => this.handleBan()}>
           <ha-icon icon="mdi:thumb-down"></ha-icon>
-          <span>Ban Song</span>
+          <span>${cardLocalize(this.hass, 'song.ban')}</span>
         </button>
       ` : nothing}
       ${this.showTired ? html`
         <button class="action-button tired" @click=${() => this.handleTired()}>
           <ha-icon icon="mdi:sleep"></ha-icon>
-          <span>Snooze (1 month)</span>
+          <span>${cardLocalize(this.hass, 'song.tired')}</span>
         </button>
       ` : nothing}
     `;
@@ -256,7 +257,7 @@ export class SongActionsMenu extends BasePopup {
         class="trigger-button ${isLoved ? 'loved' : ''}"
         @click=${this.toggleMenu}
         ?disabled=${this.disabled}
-        title="${isLoved ? 'Loved' : 'Song actions'}"
+        title="${isLoved ? cardLocalize(this.hass, 'song.title_loved') : cardLocalize(this.hass, 'song.title_menu')}"
       >
         <ha-icon icon="${isLoved ? 'mdi:thumb-up' : 'mdi:thumbs-up-down-outline'}"></ha-icon>
       </button>

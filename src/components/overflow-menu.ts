@@ -1,8 +1,11 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
+import { cardLocalize } from '../i18n';
+import type { HomeAssistant } from '../types';
 
 @customElement('pmc-overflow-menu')
 export class OverflowMenu extends LitElement {
+  @property({ attribute: false }) hass?: HomeAssistant;
   @property({ type: String }) entityId = '';
   @property({ type: Boolean }) showStationOption = false;
   @property({ type: Boolean }) showRatingsOption = false;
@@ -338,33 +341,34 @@ export class OverflowMenu extends LitElement {
       }
     `;
 
+    const L = (key: string) => cardLocalize(this.hass, key);
     // Build menu items HTML
     let menuItems = '';
-    
+
     // Song actions section (if any are shown)
     if (this.showExplainOption) {
       menuItems += `
         <button class="menu-item" data-action="explain-song">
           <ha-icon icon="mdi:comment-question-outline"></ha-icon>
-          <span>Why this song?</span>
+          <span>${L('overflow.why_song')}</span>
         </button>
       `;
     }
-    
+
     if (this.showUpcomingOption) {
       menuItems += `
         <button class="menu-item" data-action="show-upcoming">
           <ha-icon icon="mdi:playlist-music"></ha-icon>
-          <span>Show Upcoming Songs</span>
+          <span>${L('overflow.show_upcoming')}</span>
         </button>
       `;
     }
-    
+
     if (this.showRatingsOption) {
       menuItems += `
         <button class="menu-item" data-action="select-ratings">
           <ha-icon icon="mdi:thumbs-up-down-outline"></ha-icon>
-          <span>Song Ratings</span>
+          <span>${L('overflow.song_ratings')}</span>
         </button>
       `;
     }
@@ -374,111 +378,112 @@ export class OverflowMenu extends LitElement {
       menuItems += `
         <button class="menu-item" data-action="station-mode">
           <ha-icon icon="mdi:tune-variant"></ha-icon>
-          <span>Station Mode</span>
+          <span>${L('overflow.station_mode')}</span>
         </button>
       `;
     }
-    
+
     if (this.showStationInfoOption) {
       menuItems += `
         <button class="menu-item" data-action="station-info">
           <ha-icon icon="mdi:information"></ha-icon>
-          <span>Manage Seeds & Feedback</span>
+          <span>${L('overflow.manage_seeds')}</span>
         </button>
       `;
     }
-    
+
     // Divider after station actions if they exist
     if (this.showStationModeOption || this.showStationInfoOption) {
       menuItems += `<div style="height: 1px; background: var(--divider-color, rgba(0, 0, 0, 0.1)); margin: 4px 0;"></div>`;
     }
-    
+
     // Station management actions - Create Station
     if (this.showCreateStationOption) {
       menuItems += `
         <button class="menu-item" data-action="create-station">
           <ha-icon icon="mdi:plus-circle"></ha-icon>
-          <span>Create Station</span>
+          <span>${L('overflow.create_station')}</span>
         </button>
       `;
     }
-    
+
     // Station management actions - Add Music
     if (this.showAddMusicOption) {
       menuItems += `
         <button class="menu-item" data-action="add-music">
           <ha-icon icon="mdi:playlist-plus"></ha-icon>
-          <span>Add Music to Station</span>
+          <span>${L('overflow.add_music')}</span>
         </button>
       `;
     }
-    
+
     // Station management actions
     if (this.showRenameOption) {
       menuItems += `
         <button class="menu-item" data-action="rename-station">
           <ha-icon icon="mdi:pencil"></ha-icon>
-          <span>Rename Station</span>
+          <span>${L('overflow.rename_station')}</span>
         </button>
       `;
     }
-    
+
     if (this.showDeleteOption) {
       menuItems += `
         <button class="menu-item destructive" data-action="delete-station">
           <ha-icon icon="mdi:delete"></ha-icon>
-          <span>Delete Station</span>
+          <span>${L('overflow.delete_station')}</span>
         </button>
       `;
     }
-    
+
     // Divider before system actions
     if (this.showStationOption || this.showRenameOption || this.showDeleteOption) {
       menuItems += `<div style="height: 1px; background: var(--divider-color, rgba(0, 0, 0, 0.1)); margin: 4px 0;"></div>`;
     }
-    
+
     // Station/System actions
     if (this.showStationOption) {
       menuItems += `
         <button class="menu-item" data-action="select-station">
           <ha-icon icon="mdi:radio"></ha-icon>
-          <span>Select Station</span>
+          <span>${L('overflow.select_station')}</span>
         </button>
       `;
     }
-    
+
     // QuickMix management (right after Select Station)
     if (this.showQuickMixOption) {
       menuItems += `
         <button class="menu-item" data-action="quickmix">
           <ha-icon icon="mdi:playlist-music"></ha-icon>
-          <span>QuickMix Settings</span>
+          <span>${L('overflow.quickmix_settings')}</span>
         </button>
       `;
     }
-    
+
     if (this.showAccountSwitch) {
       menuItems += `
         <button class="menu-item" data-action="switch-account">
           <ha-icon icon="mdi:account-switch"></ha-icon>
-          <span>Switch Account</span>
+          <span>${L('overflow.switch_account')}</span>
         </button>
       `;
     }
 
+    const powerLabel = this.isOn ? L('overflow.disconnect') : L('overflow.connect');
     menuItems += `
       <button class="menu-item" data-action="more-info">
         <ha-icon icon="mdi:information-outline"></ha-icon>
-        <span>More Information</span>
+        <span>${L('overflow.more_information')}</span>
       </button>
       <button class="menu-item" data-action="power-toggle">
         <ha-icon icon="mdi:power"></ha-icon>
-        <span>${this.isOn ? 'Disconnect' : 'Connect'}</span>
+        <span>${powerLabel}</span>
       </button>
     `;
 
     if (this.buildTime) {
-      const fallbackSuffix = this.usingSupportedActionsFallback ? ' (entity fallback)' : '';
+      const fallbackSuffix = this.usingSupportedActionsFallback ? L('overflow.entity_fallback') : '';
       menuItems += `<div class="build-time">${this._formatBuildTime(this.buildTime)}${fallbackSuffix}</div>`;
     }
 
@@ -554,7 +559,7 @@ export class OverflowMenu extends LitElement {
         class="trigger-button"
         @click=${this._toggleMenu}
         ?disabled=${this.disabled}
-        title="More options"
+        title=${cardLocalize(this.hass, 'overflow.more_options')}
       >
         <ha-icon icon="mdi:dots-vertical"></ha-icon>
       </button>
@@ -562,21 +567,22 @@ export class OverflowMenu extends LitElement {
   }
 
   private _formatBuildTime(buildTime: string): string {
+    const prefix = cardLocalize(this.hass, 'overflow.built_prefix');
     try {
       const date = new Date(buildTime);
-      const dateStr = date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric', 
-        year: 'numeric' 
+      const dateStr = date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
       });
-      const timeStr = date.toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
+      const timeStr = date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
         minute: '2-digit',
-        hour12: true 
+        hour12: true,
       });
-      return `Built: ${dateStr} ${timeStr}`;
+      return `${prefix} ${dateStr} ${timeStr}`;
     } catch {
-      return `Built: ${buildTime}`;
+      return `${prefix} ${buildTime}`;
     }
   }
 }

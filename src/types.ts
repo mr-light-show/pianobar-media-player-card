@@ -16,6 +16,8 @@ export interface HomeAssistant {
     sendMessagePromise: (message: Record<string, unknown>) => Promise<any>;
   };
   language: string;
+  /** Home Assistant UI translations (optional on stub). */
+  localize?: (key: string, ...args: unknown[]) => string;
   config: {
     unit_system: {
       length: string;

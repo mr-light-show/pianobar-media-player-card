@@ -1,6 +1,7 @@
 import { html, css, nothing, TemplateResult, CSSResultGroup } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { CenteredPopup } from './centered-popup';
+import { cardLocalize, cardLocalizeFormat } from '../i18n';
 
 interface ArtistSeed {
   seedId: string;
@@ -322,17 +323,17 @@ export class StationInfoPopup extends CenteredPopup {
     );
 
     return html`
-      <div class="dialog-header">Seeds: ${this.currentStationName}</div>
+      <div class="dialog-header">${cardLocalizeFormat(this.hass, 'station_info.seeds_header', { name: this.currentStationName })}</div>
       <div class="dialog-body">
         ${this.infoLoading
-          ? html`<div class="loading">Loading station info...</div>`
+          ? html`<div class="loading">${cardLocalize(this.hass, 'station_info.loading')}</div>`
           : !hasAnyItems
-          ? html`<div class="no-items">No seeds or feedback available for this station.</div>`
+          ? html`<div class="no-items">${cardLocalize(this.hass, 'station_info.none')}</div>`
           : html`
                 <div class="seeds-container">
                   ${this._renderSection(
                     'artistSeeds',
-                    'Artist Seeds',
+                    cardLocalize(this.hass, 'station_info.section_artist_seeds'),
                     this.stationInfo?.artistSeeds || [],
                     (seed: ArtistSeed) => html`
                       <div class="seed-item">
@@ -344,7 +345,7 @@ export class StationInfoPopup extends CenteredPopup {
                           ?disabled=${this.disabled}
                           @click=${() => this._handleDeleteSeed(seed.seedId, 'artist')}
                         >
-                          Delete
+                          ${cardLocalize(this.hass, 'station_info.delete')}
                         </button>
                       </div>
                     `
@@ -352,7 +353,7 @@ export class StationInfoPopup extends CenteredPopup {
                   
                   ${this._renderSection(
                     'songSeeds',
-                    'Song Seeds',
+                    cardLocalize(this.hass, 'station_info.section_song_seeds'),
                     this.stationInfo?.songSeeds || [],
                     (seed: SongSeed) => html`
                       <div class="seed-item">
@@ -365,7 +366,7 @@ export class StationInfoPopup extends CenteredPopup {
                           ?disabled=${this.disabled}
                           @click=${() => this._handleDeleteSeed(seed.seedId, 'song')}
                         >
-                          Delete
+                          ${cardLocalize(this.hass, 'station_info.delete')}
                         </button>
                       </div>
                     `
@@ -373,7 +374,7 @@ export class StationInfoPopup extends CenteredPopup {
                   
                   ${this._renderSection(
                     'stationSeeds',
-                    'Station Seeds',
+                    cardLocalize(this.hass, 'station_info.section_station_seeds'),
                     this.stationInfo?.stationSeeds || [],
                     (seed: StationSeed) => html`
                       <div class="seed-item">
@@ -385,7 +386,7 @@ export class StationInfoPopup extends CenteredPopup {
                           ?disabled=${this.disabled}
                           @click=${() => this._handleDeleteSeed(seed.seedId, 'station')}
                         >
-                          Delete
+                          ${cardLocalize(this.hass, 'station_info.delete')}
                         </button>
                       </div>
                     `
@@ -393,7 +394,7 @@ export class StationInfoPopup extends CenteredPopup {
                   
                   ${this._renderSection(
                     'feedback',
-                    'Feedback',
+                    cardLocalize(this.hass, 'station_info.section_feedback'),
                     this.stationInfo?.feedback || [],
                     (feedback: Feedback) => html`
                       <div class="feedback-item">
@@ -409,7 +410,7 @@ export class StationInfoPopup extends CenteredPopup {
                           ?disabled=${this.disabled}
                           @click=${() => this._handleDeleteFeedback(feedback.feedbackId)}
                         >
-                          Delete
+                          ${cardLocalize(this.hass, 'station_info.delete')}
                         </button>
                       </div>
                     `
@@ -418,7 +419,7 @@ export class StationInfoPopup extends CenteredPopup {
               `}
       </div>
       <div class="dialog-footer">
-        <button class="close" @click=${() => this._handleClose()}>Close</button>
+        <button class="close" @click=${() => this._handleClose()}>${cardLocalize(this.hass, 'station_info.close')}</button>
       </div>
     `;
   }

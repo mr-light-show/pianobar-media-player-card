@@ -1,6 +1,7 @@
 import { html, css, nothing, TemplateResult, CSSResultGroup } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { BasePopup } from './base-popup';
+import { cardLocalize } from '../i18n';
 
 interface UpcomingSong {
   title: string;
@@ -261,10 +262,10 @@ export class UpcomingSongsPopup extends BasePopup {
 
   protected renderPopupContent(): TemplateResult {
     return html`
-      <div class="popup-header">Upcoming Songs</div>
+      <div class="popup-header">${cardLocalize(this.hass, 'upcoming.title')}</div>
       ${this.songs.length > 0
         ? this.songs.map(song => this.renderSongItem(song))
-        : html`<div class="no-songs">No upcoming songs</div>`
+        : html`<div class="no-songs">${cardLocalize(this.hass, 'upcoming.none')}</div>`
       }
     `;
   }
@@ -273,7 +274,7 @@ export class UpcomingSongsPopup extends BasePopup {
     return html`
       <div class="song-item">
         ${song.coverArt
-          ? html`<img class="song-artwork" src="${song.coverArt}" alt="" />`
+          ? html`<img class="song-artwork" src="${song.coverArt}" alt=${cardLocalize(this.hass, 'upcoming.artwork_alt')} />`
           : html`
               <div class="song-artwork-placeholder">
                 <ha-icon icon="mdi:music"></ha-icon>

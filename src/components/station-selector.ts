@@ -2,6 +2,7 @@ import { html, css, nothing, TemplateResult, CSSResultGroup } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { BasePopup } from './base-popup';
 import { Station } from '../types';
+import { cardLocalize } from '../i18n';
 
 @customElement('pmc-station-selector')
 export class StationSelector extends BasePopup {
@@ -277,7 +278,7 @@ export class StationSelector extends BasePopup {
     const isQuickMix = currentStation?.isQuickMix ?? false;
 
     // Determine display name for tooltip
-    let displayName = this.currentStationName || 'Select Station';
+    let displayName = this.currentStationName || cardLocalize(this.hass, 'overflow.select_station');
     if (isQuickMix && this.songStationName) {
       displayName = this.songStationName;
     }

@@ -1,6 +1,7 @@
 import { html, css, nothing, PropertyValues, TemplateResult, CSSResultGroup } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { BasePopup } from './base-popup';
+import { cardLocalize, cardLocalizeFormat } from '../i18n';
 
 interface StationMode {
   id: number;
@@ -458,21 +459,23 @@ export class StationModePopup extends BasePopup {
     return html`
       <div class="popup-head">
         <div class="popup-header">
-          ${this.currentStationName ? `Station Mode: ${this.currentStationName}` : 'Station Mode'}
+          ${this.currentStationName
+            ? cardLocalizeFormat(this.hass, 'station_mode.title_named', { name: this.currentStationName })
+            : cardLocalize(this.hass, 'station_mode.title')}
         </div>
         ${this.currentStationId
-          ? html`<div class="station-id-compact" title="Station ID">${this.currentStationId}</div>`
+          ? html`<div class="station-id-compact" title=${cardLocalize(this.hass, 'station_mode.station_id')}>${this.currentStationId}</div>`
           : nothing}
         <div class="popup-head-separator" role="presentation"></div>
       </div>
 
       ${this.loading
-        ? html`<div class="loading">Loading modes...</div>`
+        ? html`<div class="loading">${cardLocalize(this.hass, 'station_mode.loading')}</div>`
         : this.modes.length === 0
-          ? html`<div class="no-modes">No modes available</div>`
+          ? html`<div class="no-modes">${cardLocalize(this.hass, 'station_mode.no_modes')}</div>`
           : html`
               <div class="info-note">
-                Note: Changing the station mode will restart playback.
+                ${cardLocalize(this.hass, 'station_mode.note')}
               </div>
 
               <div class="modes-list">
@@ -490,7 +493,7 @@ export class StationModePopup extends BasePopup {
                         @change=${() => this._handleModeSelect(mode.id)}
                       >
                       <span class="mode-name">${mode.name}</span>
-                      ${mode.active ? html`<span class="mode-active-badge">Active</span>` : nothing}
+                      ${mode.active ? html`<span class="mode-active-badge">${cardLocalize(this.hass, 'station_mode.active')}</span>` : nothing}
                     </div>
                     <div class="mode-description">${mode.description}</div>
                   </div>
@@ -499,14 +502,14 @@ export class StationModePopup extends BasePopup {
 
               <div class="popup-footer">
                 <button class="button-cancel" @click=${() => this.closePopup()}>
-                  Cancel
+                  ${cardLocalize(this.hass, 'station_mode.cancel')}
                 </button>
                 <button 
                   class="button-confirm"
                   ?disabled=${this._selectedModeId === null}
                   @click=${() => this._handleSetMode()}
                 >
-                  Set Mode
+                  ${cardLocalize(this.hass, 'station_mode.set_mode')}
                 </button>
               </div>
             `

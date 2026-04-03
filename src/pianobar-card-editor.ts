@@ -7,6 +7,7 @@ import {
   LovelaceCardEditor,
 } from './types';
 import { getModePreset, detectMatchingPreset } from './modes';
+import { cardLocalize } from './i18n';
 
 // Injected at build time by rollup
 declare const __BUILD_TIMESTAMP__: string;
@@ -33,23 +34,6 @@ const GENERAL_SCHEMA = [
   },
 ];
 
-const MODE_SCHEMA = [
-  {
-    name: 'mode',
-    selector: {
-      select: {
-        mode: 'dropdown',
-        options: [
-          { value: 'default', label: 'Default - Standard layout with artwork on right' },
-          { value: 'minimal', label: 'Minimal - Compact view with minimal controls' },
-          { value: 'full', label: 'Full - Full-cover artwork background' },
-          { value: 'tall', label: 'Tall - Vertical layout with artwork on top' },
-          { value: 'custom', label: 'Custom - Full control over all options' },
-        ],
-      },
-    },
-  },
-];
 
 const ADVANCED_SCHEMA = [
   {
@@ -62,43 +46,11 @@ const ADVANCED_SCHEMA = [
   },
 ];
 
-const CUSTOM_APPEARANCE_SCHEMA = [
-  {
-    name: 'artwork',
-    selector: {
-      select: {
-        mode: 'dropdown',
-        options: [
-          { value: 'default', label: 'Compact (right side)' },
-          { value: 'full-cover', label: 'Full Cover (background)' },
-          { value: 'tall', label: 'Tall (artwork on top)' },
-        ],
-      },
-    },
-  },
-];
-
 /** Schema for Tall artwork size (%); only shown when layout is tall. */
 const TALL_ARTWORK_SIZE_SCHEMA = [
   {
     name: 'tallArtworkSize',
     selector: { number: { min: 50, max: 100, step: 5 } },
-  },
-];
-
-const STATION_DISPLAY_SCHEMA = [
-  {
-    name: 'stationDisplay',
-    selector: {
-      select: {
-        mode: 'dropdown',
-        options: [
-          { value: 'hidden', label: 'Hidden' },
-          { value: 'compact', label: 'Compact (icon only)' },
-          { value: 'normal', label: 'Full (icon + station name)' },
-        ],
-      },
-    },
   },
 ];
 
@@ -404,26 +356,87 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
     });
   }
 
-  private _computeLabel(schema: { name: string }): string {
-    const labels: Record<string, string> = {
-      entity: 'Entity',
-      name: 'Custom Name',
-      volume_entity: 'Volume Entity',
-      artwork: 'Artwork Style',
-      tallArtworkSize: 'Tall artwork size (%)',
-      stationDisplay: 'Station Selector',
-    };
-    return labels[schema.name] || schema.name;
+  private _modeSchema() {
+    const L = (k: string) => cardLocalize(this.hass, k);
+    return [
+      {
+        name: 'mode',
+        selector: {
+          select: {
+            mode: 'dropdown',
+            options: [
+              { value: 'default', label: L('editor.mode_default') },
+              { value: 'minimal', label: L('editor.mode_minimal') },
+              { value: 'full', label: L('editor.mode_full') },
+              { value: 'tall', label: L('editor.mode_tall') },
+              { value: 'custom', label: L('editor.mode_custom') },
+            ],
+          },
+        },
+      },
+    ];
   }
 
-  private _computeHelper(schema: { name: string }): string {
-    const helpers: Record<string, string> = {
-      entity: 'Select any media player entity',
-      name: 'Leave empty to use entity name',
-      volume_entity: 'Override volume control to a different media player (e.g., Sonos speaker)',
-    };
-    return helpers[schema.name] || '';
+  private _customAppearanceSchema() {
+    const L = (k: string) => cardLocalize(this.hass, k);
+    return [
+      {
+        name: 'artwork',
+        selector: {
+          select: {
+            mode: 'dropdown',
+            options: [
+              { value: 'default', label: L('editor.artwork_default') },
+              { value: 'full-cover', label: L('editor.artwork_full_cover') },
+              { value: 'tall', label: L('editor.artwork_tall') },
+            ],
+          },
+        },
+      },
+    ];
   }
+
+  private _stationDisplaySchema() {
+    const L = (k: string) => cardLocalize(this.hass, k);
+    return [
+      {
+        name: 'stationDisplay',
+        selector: {
+          select: {
+            mode: 'dropdown',
+            options: [
+              { value: 'hidden', label: L('editor.station_hidden') },
+              { value: 'compact', label: L('editor.station_compact') },
+              { value: 'normal', label: L('editor.station_normal') },
+            ],
+          },
+        },
+      },
+    ];
+  }
+
+  private _computeLabel = (schema: { name: string }): string => {
+    const keyMap: Record<string, string> = {
+      entity: 'editor.label_entity',
+      name: 'editor.label_custom_name',
+      volume_entity: 'editor.label_volume_entity',
+      artwork: 'editor.label_artwork',
+      tallArtworkSize: 'editor.label_tall_artwork_size',
+      stationDisplay: 'editor.label_station_display',
+    };
+    const k = keyMap[schema.name];
+    return k ? cardLocalize(this.hass, k) : schema.name;
+  };
+
+  private _computeHelper = (schema: { name: string }): string => {
+    const keyMap: Record<string, string> = {
+      entity: 'editor.helper_entity',
+      name: 'editor.helper_name',
+      volume_entity: 'editor.helper_volume_entity',
+    };
+    const k = keyMap[schema.name];
+    return k ? cardLocalize(this.hass, k) : '';
+  };
 
   /** Fetch supported service names for the given entity (get_services_for_target or entity.attributes fallback). Populates debug state for the temporary debug tab. */
   private async _fetchSupportedActions(entityId: string): Promise<string[]> {
@@ -494,11 +507,11 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
         @value-changed=${this._valueChanged}
       ></ha-form>
 
-      <div class="section-title">Mode</div>
+      <div class="section-title">${cardLocalize(this.hass, 'editor.section_mode')}</div>
       <ha-form
         .hass=${this.hass}
         .data=${{ mode: this._config?.mode || 'default' }}
-        .schema=${MODE_SCHEMA}
+        .schema=${this._modeSchema()}
         .computeLabel=${this._computeLabel}
         @value-changed=${this._valueChanged}
       ></ha-form>
@@ -520,8 +533,8 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
           : 80;
     
     const appearanceSchema = showTallSize
-      ? [...CUSTOM_APPEARANCE_SCHEMA, ...TALL_ARTWORK_SIZE_SCHEMA]
-      : CUSTOM_APPEARANCE_SCHEMA;
+      ? [...this._customAppearanceSchema(), ...TALL_ARTWORK_SIZE_SCHEMA]
+      : this._customAppearanceSchema();
     
     const dataWithResolvedValues = {
       ...this._config,
@@ -543,18 +556,18 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
         @value-changed=${this._handleAppearanceChange}
       ></ha-form>
 
-      <div class="section-title">Station Selector</div>
+      <div class="section-title">${cardLocalize(this.hass, 'editor.section_station_selector')}</div>
       ${supportsStations
         ? html`
             <ha-form
               .hass=${this.hass}
               .data=${{ stationDisplay }}
-              .schema=${STATION_DISPLAY_SCHEMA}
+              .schema=${this._stationDisplaySchema()}
               .computeLabel=${this._computeLabel}
               @value-changed=${this._handleAppearanceChange}
             ></ha-form>
           `
-        : html`<p class="helper-text">Station selector requires a Pianobar media player entity</p>`}
+        : html`<p class="helper-text">${cardLocalize(this.hass, 'editor.helper_station_pianobar')}</p>`}
     `;
   }
 
@@ -680,29 +693,30 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
     const supportsRating = this._supportsRating;
     const supportsMultiAccount = this._supportsMultipleAccounts();
 
+    const L = (k: string) => cardLocalize(this.hass, k);
     return html`
-      ${this._renderCheckbox('showPlaybackControls', 'Show playback controls', showPlaybackControls)}
-      ${this._renderCheckbox('showPowerButton', 'Show power button', showPowerButton, true, !showPlaybackControls)}
-      ${this._renderCheckbox('showSongActions', 'Show song actions (thumbs)', supportsRating ? showSongActions : false, true, !showPlaybackControls || !supportsRating)}
+      ${this._renderCheckbox('showPlaybackControls', L('editor.checkbox_show_playback'), showPlaybackControls)}
+      ${this._renderCheckbox('showPowerButton', L('editor.checkbox_show_power'), showPowerButton, true, !showPlaybackControls)}
+      ${this._renderCheckbox('showSongActions', L('editor.checkbox_show_thumbs'), supportsRating ? showSongActions : false, true, !showPlaybackControls || !supportsRating)}
 
-      ${this._renderCheckbox('showProgressBar', 'Show progress bar', showProgressBar)}
-      ${this._renderCheckbox('showProgressTime', 'Show progress time', showProgressTime, true, !showProgressBar)}
+      ${this._renderCheckbox('showProgressBar', L('editor.checkbox_show_progress'), showProgressBar)}
+      ${this._renderCheckbox('showProgressTime', L('editor.checkbox_show_progress_time'), showProgressTime, true, !showProgressBar)}
 
-      ${this._renderCheckbox('showVolumeControl', 'Show volume control', showVolumeControl)}
+      ${this._renderCheckbox('showVolumeControl', L('editor.checkbox_show_volume'), showVolumeControl)}
 
       ${supportsMultiAccount
         ? this._renderCheckbox(
             'showAccountSwitch',
-            'Show Switch Account in menu',
+            L('editor.checkbox_show_account_switch'),
             showAccountSwitch
           )
-        : html`<p class="helper-text">Switch Account appears when the player has multiple Pandora accounts.</p>`}
+        : html`<p class="helper-text">${L('editor.helper_switch_account_multi')}</p>`}
 
-      ${this._renderCheckbox('showDetails', 'Show details', showDetails)}
-      ${this._renderCheckbox('showTitle', 'Show title', showTitle, true, !showDetails)}
-      ${this._renderCheckbox('showArtist', 'Show artist', showArtist, true, !showDetails)}
-      ${this._renderCheckbox('showAlbum', 'Show album', showAlbum, true, !showDetails)}
-      ${this._renderCheckbox('reserveDetailsSpace', 'Reserve space on card', reserveDetailsSpace, true, !showDetails)}
+      ${this._renderCheckbox('showDetails', L('editor.checkbox_show_details'), showDetails)}
+      ${this._renderCheckbox('showTitle', L('editor.checkbox_show_title'), showTitle, true, !showDetails)}
+      ${this._renderCheckbox('showArtist', L('editor.checkbox_show_artist'), showArtist, true, !showDetails)}
+      ${this._renderCheckbox('showAlbum', L('editor.checkbox_show_album'), showAlbum, true, !showDetails)}
+      ${this._renderCheckbox('reserveDetailsSpace', L('editor.checkbox_reserve_space'), reserveDetailsSpace, true, !showDetails)}
     `;
   }
 
@@ -721,25 +735,26 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
 
   /** Temporary debug tab: compare get_services_for_target (new way) vs entity.attributes (old way). */
   private _renderDebugActionsTab(): TemplateResult {
+    const L = (k: string) => cardLocalize(this.hass, k);
     return html`
-      <p class="helper-text">Temporary tab for debugging. Compare new API vs entity attributes.</p>
-      <div class="section-title">From get_services_for_target (new way)</div>
+      <p class="helper-text">${L('editor.debug_help')}</p>
+      <div class="section-title">${L('editor.debug_new_way')}</div>
       ${this._newWayError
-        ? html`<div class="debug-error">Error: ${this._newWayError}</div>
+        ? html`<div class="debug-error">${L('editor.debug_error')}: ${this._newWayError}</div>
       ${this._newWayRawResponseStr
-        ? html`<div class="debug-raw">Raw: ${this._newWayRawResponseStr}${this._newWayRawResponseStr.length >= 600 ? '…' : ''}</div>`
+        ? html`<div class="debug-raw">${L('editor.debug_raw')}: ${this._newWayRawResponseStr}${this._newWayRawResponseStr.length >= 600 ? '…' : ''}</div>`
         : nothing}`
         : nothing}
       <div class="debug-list">
         ${this._newWayActions.length > 0
           ? this._newWayActions.join(', ')
-          : '(none)'}
+          : L('editor.debug_none')}
       </div>
-      <div class="section-title">From entity.attributes (old way)</div>
+      <div class="section-title">${L('editor.debug_old_way')}</div>
       <div class="debug-list">
         ${this._oldWayActions.length > 0
           ? this._oldWayActions.join(', ')
-          : '(none)'}
+          : L('editor.debug_none')}
       </div>
     `;
   }
@@ -749,11 +764,12 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
       return html``;
     }
 
+    const L = (k: string) => cardLocalize(this.hass, k);
     const tabs = [
-      { id: 'general', label: 'General' },
-      { id: 'appearance', label: 'Appearance' },
-      { id: 'controls', label: 'Controls' },
-      { id: 'advanced', label: 'Advanced' },
+      { id: 'general', label: L('editor.tab_general') },
+      { id: 'appearance', label: L('editor.tab_appearance') },
+      { id: 'controls', label: L('editor.tab_controls') },
+      { id: 'advanced', label: L('editor.tab_advanced') },
       // { id: 'debug-actions', label: 'Supported actions (debug)' },
     ];
 
@@ -790,7 +806,7 @@ export class PianobarCardEditor extends LitElement implements LovelaceCardEditor
           : nothing}
 
         <div class="version-info">
-          Build: ${BUILD_VERSION}
+          ${cardLocalize(this.hass, 'editor.build')}: ${BUILD_VERSION}
         </div>
       </div>
     `;

@@ -1,8 +1,11 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
+import { cardLocalize } from '../i18n';
+import type { HomeAssistant } from '../types';
 
 @customElement('pmc-volume-slider')
 export class VolumeSlider extends LitElement {
+  @property({ attribute: false }) hass?: HomeAssistant;
   @property({ type: Number }) volume = 0.5;
   @property({ type: Boolean }) muted = false;
   @property({ type: Boolean }) disabled = false;
@@ -154,7 +157,7 @@ export class VolumeSlider extends LitElement {
         class="volume-button"
         @click=${this._handleMuteToggle}
         ?disabled=${this.disabled}
-        title=${this.muted ? 'Unmute' : 'Mute'}
+        title=${this.muted ? cardLocalize(this.hass, 'volume.unmute') : cardLocalize(this.hass, 'volume.mute')}
       >
         <ha-icon .icon=${this._getVolumeIcon()}></ha-icon>
       </button>

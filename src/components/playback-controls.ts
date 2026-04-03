@@ -1,8 +1,11 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
+import { cardLocalize } from '../i18n';
+import type { HomeAssistant } from '../types';
 
 @customElement('pmc-playback-controls')
 export class PlaybackControls extends LitElement {
+  @property({ attribute: false }) hass?: HomeAssistant;
   @property({ type: Boolean }) playing = false;
   @property({ type: Boolean }) disabled = false;
   @property({ type: Boolean }) showPower = false;
@@ -71,7 +74,7 @@ export class PlaybackControls extends LitElement {
             <button
               class="control-button ${this.isOn ? '' : 'power-off'}"
               @click=${this._handlePower}
-              title=${this.isOn ? 'Turn off' : 'Turn on'}
+              title=${this.isOn ? cardLocalize(this.hass, 'playback.turn_off') : cardLocalize(this.hass, 'playback.turn_on')}
             >
               <ha-icon icon="mdi:power"></ha-icon>
             </button>
@@ -81,7 +84,7 @@ export class PlaybackControls extends LitElement {
         class="control-button"
         @click=${this._handlePlayPause}
         ?disabled=${this.disabled}
-        title=${this.playing ? 'Pause' : 'Play'}
+        title=${this.playing ? cardLocalize(this.hass, 'playback.pause') : cardLocalize(this.hass, 'playback.play')}
       >
         <ha-icon .icon=${this.playing ? 'mdi:pause' : 'mdi:play'}></ha-icon>
       </button>
@@ -89,7 +92,7 @@ export class PlaybackControls extends LitElement {
         class="control-button"
         @click=${this._handleNext}
         ?disabled=${this.disabled}
-        title="Next track"
+        title=${cardLocalize(this.hass, 'playback.next')}
       >
         <ha-icon icon="mdi:skip-next"></ha-icon>
       </button>

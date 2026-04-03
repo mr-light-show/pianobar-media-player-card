@@ -2,6 +2,7 @@ import { html, css, nothing, TemplateResult, CSSResultGroup } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { CenteredPopup } from './centered-popup';
 import { Station } from '../types';
+import { cardLocalize } from '../i18n';
 
 @customElement('pmc-delete-dialog')
 export class DeleteDialog extends CenteredPopup {
@@ -212,17 +213,17 @@ export class DeleteDialog extends CenteredPopup {
     const selectableStations = this.stations.filter(s => !s.isQuickMix);
 
     return html`
-      <div class="dialog-header">Delete Station</div>
+      <div class="dialog-header">${cardLocalize(this.hass, 'delete.title')}</div>
       <div class="dialog-body">
         <div class="warning-message">
           <p>
-            <strong>Warning:</strong> This will permanently delete the selected station. 
-            This action cannot be undone.
+            <strong>${cardLocalize(this.hass, 'delete.warning')}</strong> ${cardLocalize(this.hass, 'delete.confirm_text')}
+            ${cardLocalize(this.hass, 'delete.cannot_undo')}
           </p>
         </div>
         
         ${selectableStations.length === 0
-          ? html`<div class="no-stations">No stations available to delete</div>`
+          ? html`<div class="no-stations">${cardLocalize(this.hass, 'delete.no_stations')}</div>`
           : html`
               <div class="station-list">
                 ${selectableStations.map(
@@ -247,10 +248,10 @@ export class DeleteDialog extends CenteredPopup {
       </div>
       <div class="dialog-footer">
         <button class="cancel" @click=${() => this._handleCancel()} ?disabled=${this.disabled}>
-          Cancel
+          ${cardLocalize(this.hass, 'delete.cancel')}
         </button>
         <button class="delete" @click=${() => this._handleDelete()} ?disabled=${!this._selectedStationId || this.disabled}>
-          Delete Station
+          ${cardLocalize(this.hass, 'delete.delete_station_button')}
         </button>
       </div>
     `;
