@@ -114,10 +114,16 @@ export abstract class BasePopup extends LitElement {
     if (changedProperties.has('isOpen')) {
       this._updatePortalContent();
     }
-    // Always refresh portal content when popup is open and any state changes
-    // This ensures subclass @state() changes are reflected in the portal
+    // Refresh portal when open and meaningful props/state change. Skip hass-only
+    // updates: HA passes a new hass reference every state tick (~1s for media_player),
+    // and full portal rebuild destroys focused inputs (e.g. create-station search).
     if (this.isOpen && changedProperties.size > 0 && !changedProperties.has('isOpen')) {
-      this._updatePortalContent();
+      const changedKeys = [...changedProperties.keys()];
+      const onlyHass =
+        changedKeys.length === 1 && changedKeys[0] === 'hass';
+      if (!onlyHass) {
+        this._updatePortalContent();
+      }
     }
   }
 
