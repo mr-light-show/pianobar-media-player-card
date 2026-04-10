@@ -305,6 +305,22 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   private async _handlePlayPause(): Promise<void> {
     const entity = this._getEntity();
     if (!entity || !this.hass) return;
+    if (this._isUnavailable(entity)) return;
+
+    if (entity.state === 'off') {
+      const stations = (entity.attributes.stations as Station[]) || [];
+      const quickMix = stations.find((s) => s.isQuickMix === true);
+      const name = quickMix?.name?.trim();
+      if (name) {
+        await this.hass.callService(
+          'media_player',
+          'select_source',
+          { source: name },
+          { entity_id: entity.entity_id }
+        );
+        return;
+      }
+    }
 
     await this.hass.callService('media_player', 'media_play_pause', undefined, {
       entity_id: entity.entity_id,
