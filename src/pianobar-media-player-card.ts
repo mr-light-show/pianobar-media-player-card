@@ -87,6 +87,9 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   @state() private _genreCategories: GenreCategory[] = [];
   @state() private _genreLoading = false;
   @state() private _openAccountPopup = false;
+
+  /** Previous `pandora_connected` for one-shot disconnect toast (true → false only). */
+  private _prevPandoraConnected: boolean | undefined = undefined;
   
   private _createStationModalRef: Ref<any> = createRef();
 
@@ -113,6 +116,9 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
       throw new Error('Please define an entity');
     }
 
+    if (this._config?.entity !== config.entity) {
+      this._prevPandoraConnected = undefined;
+    }
     this._config = config;
     this._resolvedConfig = resolveConfig(config);
   }
@@ -182,6 +188,25 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         }
       }
     }
+
+    // One-shot toast: pandora_connected true → false (Pandora session ended)
+    const entity = this._getEntity();
+    if (entity && this.hass && !this._isUnavailable(entity)) {
+      const connected = entity.attributes.pandora_connected !== false;
+      if (this._prevPandoraConnected === true && connected === false) {
+        this.dispatchEvent(
+          new CustomEvent('hass-notification', {
+            detail: {
+              message: cardLocalize(this.hass, 'card.toast_pandora_disconnected'),
+              duration: 6000,
+            },
+            bubbles: true,
+            composed: true,
+          })
+        );
+      }
+      this._prevPandoraConnected = connected;
+    }
   }
 
   private async _updateColors(imageUrl: string): Promise<void> {
@@ -211,6 +236,34 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
   private _isUnavailable(entity: HassEntity): boolean {
     return entity.state === 'unavailable' || entity.state === 'unknown';
+  }
+
+  /** Pandora session ended; user must reconnect (e.g. turn_on / Connect). */
+  private _isPandoraDisconnected(entity: HassEntity): boolean {
+    return !this._isUnavailable(entity) && entity.attributes.pandora_connected === false;
+  }
+
+  private _renderPandoraDisconnectBanner(entity: HassEntity): TemplateResult | typeof nothing {
+    if (!this._isPandoraDisconnected(entity)) return nothing;
+    return html`
+      <div
+        class="pandora-disconnect-banner"
+        role="alert"
+        aria-live="polite"
+      >
+        <ha-icon class="pandora-disconnect-icon" icon="mdi:cloud-off-outline"></ha-icon>
+        <div class="pandora-disconnect-text">
+          <span>${cardLocalize(this.hass, 'card.pandora_disconnected_banner')}</span>
+        </div>
+        <button
+          type="button"
+          class="pandora-disconnect-reconnect"
+          @click=${this._handlePandoraReconnect}
+        >
+          ${cardLocalize(this.hass, 'card.pandora_disconnected_reconnect')}
+        </button>
+      </div>
+    `;
   }
 
   /** Effective supported service names: config.supported_actions or entity.attributes.supported_actions fallback. */
@@ -252,6 +305,22 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   private async _handlePlayPause(): Promise<void> {
     const entity = this._getEntity();
     if (!entity || !this.hass) return;
+    if (this._isUnavailable(entity)) return;
+
+    if (entity.state === 'off') {
+      const stations = (entity.attributes.stations as Station[]) || [];
+      const quickMix = stations.find((s) => s.isQuickMix === true);
+      const name = quickMix?.name?.trim();
+      if (name) {
+        await this.hass.callService(
+          'media_player',
+          'select_source',
+          { source: name },
+          { entity_id: entity.entity_id }
+        );
+        return;
+      }
+    }
 
     await this.hass.callService('media_player', 'media_play_pause', undefined, {
       entity_id: entity.entity_id,
@@ -275,6 +344,15 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const service = isOn ? 'turn_off' : 'turn_on';
     
     await this.hass.callService('media_player', service, undefined, {
+      entity_id: entity.entity_id,
+    });
+  }
+
+  /** Same as overflow Connect: reconnect to Pandora via `turn_on`. */
+  private async _handlePandoraReconnect(): Promise<void> {
+    const entity = this._getEntity();
+    if (!entity || !this.hass) return;
+    await this.hass.callService('media_player', 'turn_on', undefined, {
       entity_id: entity.entity_id,
     });
   }
@@ -1907,6 +1985,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         class="${cardClasses}"
       >
         ${this._renderOverflowMenu(entity)}
+        ${this._renderPandoraDisconnectBanner(entity)}
 
         ${isTallArtwork
           ? html`

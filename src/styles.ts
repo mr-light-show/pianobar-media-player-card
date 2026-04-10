@@ -231,6 +231,56 @@ export const cardStyles = css`
     z-index: 3;
   }
 
+  /* Pandora disconnected — inline banner (below overflow menu row) */
+  .pandora-disconnect-banner {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 44px 10px 12px;
+    margin: 0;
+    background-color: rgba(var(--rgb-error-color, 244, 67, 54), 0.12);
+    color: var(--primary-text-color);
+    border-bottom: 1px solid var(--error-color, #f44336);
+    font-size: 0.875rem;
+    line-height: 1.35;
+    box-sizing: border-box;
+  }
+
+  .pandora-disconnect-icon {
+    flex-shrink: 0;
+    color: var(--error-color, #f44336);
+    --mdc-icon-size: 22px;
+  }
+
+  .pandora-disconnect-text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .pandora-disconnect-reconnect {
+    flex-shrink: 0;
+    margin-left: auto;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--error-color, #f44336);
+    background: var(--card-background-color, #fff);
+    color: var(--error-color, #f44336);
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .pandora-disconnect-reconnect:hover {
+    background-color: rgba(var(--rgb-error-color, 244, 67, 54), 0.08);
+  }
+
+  .pandora-disconnect-reconnect:focus-visible {
+    outline: 2px solid var(--error-color, #f44336);
+    outline-offset: 2px;
+  }
+
   /* Controls section */
   .controls-section {
     position: relative;
