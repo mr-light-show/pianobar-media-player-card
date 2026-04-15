@@ -342,10 +342,33 @@ export class OverflowMenu extends LitElement {
     `;
 
     const L = (key: string) => cardLocalize(this.hass, key);
-    // Build menu items HTML
+    const divider = `<div style="height: 1px; background: var(--divider-color, rgba(0, 0, 0, 0.1)); margin: 4px 0;"></div>`;
+
+    const hasNowPlaying =
+      this.showExplainOption || this.showUpcomingOption || this.showRatingsOption;
+    const hasStationTuning = this.showStationModeOption || this.showStationInfoOption;
+    const hasLibrary =
+      this.showQuickMixOption ||
+      this.showCreateStationOption ||
+      this.showAddMusicOption ||
+      this.showRenameOption ||
+      this.showDeleteOption;
+    // Build menu items HTML (order aligned with Web info-menu: account → now playing → station →
+    // library → select → more info / power).
     let menuItems = '';
 
-    // Song actions section (if any are shown)
+    if (this.showAccountSwitch) {
+      menuItems += `
+        <button class="menu-item" data-action="switch-account">
+          <ha-icon icon="mdi:account-switch"></ha-icon>
+          <span>${L('overflow.switch_account')}</span>
+        </button>
+      `;
+      if (hasNowPlaying || hasStationTuning || hasLibrary || this.showStationOption) {
+        menuItems += divider;
+      }
+    }
+
     if (this.showExplainOption) {
       menuItems += `
         <button class="menu-item" data-action="explain-song">
@@ -373,7 +396,6 @@ export class OverflowMenu extends LitElement {
       `;
     }
 
-    // Station actions section
     if (this.showStationModeOption) {
       menuItems += `
         <button class="menu-item" data-action="station-mode">
@@ -392,12 +414,19 @@ export class OverflowMenu extends LitElement {
       `;
     }
 
-    // Divider after station actions if they exist
-    if (this.showStationModeOption || this.showStationInfoOption) {
-      menuItems += `<div style="height: 1px; background: var(--divider-color, rgba(0, 0, 0, 0.1)); margin: 4px 0;"></div>`;
+    if ((hasNowPlaying || hasStationTuning) && hasLibrary) {
+      menuItems += divider;
     }
 
-    // Station management actions - Create Station
+    if (this.showQuickMixOption) {
+      menuItems += `
+        <button class="menu-item" data-action="quickmix">
+          <ha-icon icon="mdi:playlist-music"></ha-icon>
+          <span>${L('overflow.quickmix_settings')}</span>
+        </button>
+      `;
+    }
+
     if (this.showCreateStationOption) {
       menuItems += `
         <button class="menu-item" data-action="create-station">
@@ -407,7 +436,6 @@ export class OverflowMenu extends LitElement {
       `;
     }
 
-    // Station management actions - Add Music
     if (this.showAddMusicOption) {
       menuItems += `
         <button class="menu-item" data-action="add-music">
@@ -417,7 +445,6 @@ export class OverflowMenu extends LitElement {
       `;
     }
 
-    // Station management actions
     if (this.showRenameOption) {
       menuItems += `
         <button class="menu-item" data-action="rename-station">
@@ -436,12 +463,13 @@ export class OverflowMenu extends LitElement {
       `;
     }
 
-    // Divider before system actions
-    if (this.showStationOption || this.showRenameOption || this.showDeleteOption) {
-      menuItems += `<div style="height: 1px; background: var(--divider-color, rgba(0, 0, 0, 0.1)); margin: 4px 0;"></div>`;
+    if (
+      this.showStationOption &&
+      (this.showAccountSwitch || hasNowPlaying || hasStationTuning || hasLibrary)
+    ) {
+      menuItems += divider;
     }
 
-    // Station/System actions
     if (this.showStationOption) {
       menuItems += `
         <button class="menu-item" data-action="select-station">
@@ -451,23 +479,14 @@ export class OverflowMenu extends LitElement {
       `;
     }
 
-    // QuickMix management (right after Select Station)
-    if (this.showQuickMixOption) {
-      menuItems += `
-        <button class="menu-item" data-action="quickmix">
-          <ha-icon icon="mdi:playlist-music"></ha-icon>
-          <span>${L('overflow.quickmix_settings')}</span>
-        </button>
-      `;
-    }
-
-    if (this.showAccountSwitch) {
-      menuItems += `
-        <button class="menu-item" data-action="switch-account">
-          <ha-icon icon="mdi:account-switch"></ha-icon>
-          <span>${L('overflow.switch_account')}</span>
-        </button>
-      `;
+    const hasPrimary =
+      this.showAccountSwitch ||
+      hasNowPlaying ||
+      hasStationTuning ||
+      hasLibrary ||
+      this.showStationOption;
+    if (hasPrimary) {
+      menuItems += divider;
     }
 
     const powerLabel = this.isOn ? L('overflow.disconnect') : L('overflow.connect');

@@ -630,17 +630,25 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const hasCurrentSong = !!entity.attributes.media_title;
     const hasRatings = this._supportsAnyRating() && hasCurrentSong;
     const isOn = entity.state !== 'off' && entity.state !== 'unavailable';
+    /** Pandora session usable for overflow (mirrors Web info-menu when connected). */
+    const pandoraSessionUp =
+      !this._isUnavailable(entity) && !this._isPandoraDisconnected(entity);
     const currentStation = stations.find(s => s.id === entity.attributes.media_content_id);
-    const showStationMode = isOn && hasStations && currentStation && !currentStation.isQuickMix &&
+    const showStationMode =
+      hasStations &&
+      currentStation &&
+      !currentStation.isQuickMix &&
       (supported.includes('get_station_modes') || supported.includes('set_station_mode'));
-    const showQuickMix = isOn && hasStations && supported.includes('set_quick_mix');
-    const showStationInfo = isOn && hasStations && currentStation && supported.includes('get_station_info');
-    const showAddMusic = isOn && hasStations && currentStation && supported.includes('add_seed');
+    const showQuickMix = hasStations && supported.includes('set_quick_mix');
+    const showStationInfo =
+      hasStations && currentStation && supported.includes('get_station_info');
+    const showAddMusic =
+      hasStations && currentStation && supported.includes('add_seed');
     const showCreateStation = hasStations && supported.includes('create_station');
-    const showRename = isOn && hasStations && supported.includes('rename_station');
-    const showDelete = isOn && hasStations && supported.includes('delete_station');
-    const showExplain = hasCurrentSong && supported.includes('explain_song');
-    const showUpcoming = isOn && supported.includes('get_upcoming');
+    const showRename = hasStations && supported.includes('rename_station');
+    const showDelete = hasStations && supported.includes('delete_station');
+    const showExplain = pandoraSessionUp && supported.includes('explain_song');
+    const showUpcoming = pandoraSessionUp && supported.includes('get_upcoming');
     const accounts = (entity.attributes.accounts as Array<{id: string; label: string}>) || [];
     const entityHasMultipleAccounts = accounts.length > 1;
     const overflowShowAccountSwitch =
