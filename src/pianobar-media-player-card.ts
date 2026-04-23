@@ -623,43 +623,74 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     `;
   }
 
+  /**
+   * Overflow visibility follows docs/MENU_STATE_MATRIX.md (desired matrix).
+   * Scenario chain: disconnected → session ready → have stations → station selected → song (title).
+   */
   private _renderOverflowMenu(entity: HassEntity): TemplateResult {
     const supported = this._getEffectiveSupportedActions();
     const stations = (entity.attributes.stations as Station[]) || [];
-    const hasStations = stations.length > 0;
-    const hasCurrentSong = !!entity.attributes.media_title;
-    const hasRatings = this._supportsAnyRating() && hasCurrentSong;
+    const unavailable = this._isUnavailable(entity);
     const isOn = entity.state !== 'off' && entity.state !== 'unavailable';
-    /** Pandora session usable for overflow (mirrors Web info-menu when connected). */
     const pandoraSessionUp =
-      !this._isUnavailable(entity) && !this._isPandoraDisconnected(entity);
+      !unavailable && !this._isPandoraDisconnected(entity);
+    const sessionReady = pandoraSessionUp && isOn;
+    const hasStations = stations.length > 0;
     const currentStation = stations.find(s => s.id === entity.attributes.media_content_id);
+    const stationSelected = !!currentStation;
+    const mediaTitle = (entity.attributes.media_title as string | undefined)?.trim() ?? '';
+    const hasSong = stationSelected && mediaTitle.length > 0;
+    const hasRatings = this._supportsAnyRating() && hasSong;
+
+    const showExplain =
+      sessionReady && hasSong && supported.includes('explain_song');
+    const showUpcoming =
+      sessionReady && stationSelected && supported.includes('get_upcoming');
     const showStationMode =
+      sessionReady &&
       hasStations &&
       currentStation &&
       !currentStation.isQuickMix &&
       (supported.includes('get_station_modes') || supported.includes('set_station_mode'));
-    const showQuickMix = hasStations && supported.includes('set_quick_mix');
     const showStationInfo =
-      hasStations && currentStation && supported.includes('get_station_info');
+      sessionReady &&
+      hasStations &&
+      currentStation &&
+      !currentStation.isQuickMix &&
+      supported.includes('get_station_info');
+    const showQuickMix =
+      sessionReady && hasStations && supported.includes('set_quick_mix');
+    const showCreateStation = sessionReady && supported.includes('create_station');
     const showAddMusic =
-      hasStations && currentStation && supported.includes('add_seed');
-    const showCreateStation = hasStations && supported.includes('create_station');
-    const showRename = hasStations && supported.includes('rename_station');
-    const showDelete = hasStations && supported.includes('delete_station');
-    const showExplain = pandoraSessionUp && supported.includes('explain_song');
-    const showUpcoming = pandoraSessionUp && supported.includes('get_upcoming');
+      sessionReady &&
+      hasStations &&
+      stationSelected &&
+      currentStation &&
+      supported.includes('add_seed');
+    const showRename =
+      sessionReady &&
+      hasStations &&
+      stationSelected &&
+      supported.includes('rename_station');
+    const showDelete =
+      sessionReady &&
+      hasStations &&
+      stationSelected &&
+      supported.includes('delete_station');
     const accounts = (entity.attributes.accounts as Array<{id: string; label: string}>) || [];
     const entityHasMultipleAccounts = accounts.length > 1;
     const overflowShowAccountSwitch =
-      entityHasMultipleAccounts && this._resolvedConfig?.showAccountSwitch !== false;
+      sessionReady &&
+      entityHasMultipleAccounts &&
+      this._resolvedConfig?.showAccountSwitch !== false;
+    const showStationOption = sessionReady && hasStations;
 
     return html`
       <pmc-overflow-menu
         class="overflow-menu"
         .hass=${this.hass}
         .entityId=${entity.entity_id}
-        .showStationOption=${hasStations}
+        .showStationOption=${showStationOption}
         .showRatingsOption=${hasRatings}
         .showExplainOption=${showExplain}
         .showUpcomingOption=${showUpcoming}
