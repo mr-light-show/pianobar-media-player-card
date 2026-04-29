@@ -342,145 +342,138 @@ export class OverflowMenu extends LitElement {
     `;
 
     const L = (key: string) => cardLocalize(this.hass, key);
-    // Build menu items HTML
-    let menuItems = '';
+    const divider = `<div style="height: 1px; background: var(--divider-color, rgba(0, 0, 0, 0.1)); margin: 4px 0;"></div>`;
 
-    // Song actions section (if any are shown)
-    if (this.showExplainOption) {
-      menuItems += `
-        <button class="menu-item" data-action="explain-song">
-          <ha-icon icon="mdi:comment-question-outline"></ha-icon>
-          <span>${L('overflow.why_song')}</span>
-        </button>
-      `;
-    }
+    // Non-empty segments only, joined by a single divider (no back-to-back dividers when
+    // intermediate groups are empty). Order: account (switch account, select station) →
+    // now playing + station → library (delete at end) → footer (power / more info).
+    const segments: string[] = [];
 
-    if (this.showUpcomingOption) {
-      menuItems += `
-        <button class="menu-item" data-action="show-upcoming">
-          <ha-icon icon="mdi:playlist-music"></ha-icon>
-          <span>${L('overflow.show_upcoming')}</span>
-        </button>
-      `;
-    }
-
-    if (this.showRatingsOption) {
-      menuItems += `
-        <button class="menu-item" data-action="select-ratings">
-          <ha-icon icon="mdi:thumbs-up-down-outline"></ha-icon>
-          <span>${L('overflow.song_ratings')}</span>
-        </button>
-      `;
-    }
-
-    // Station actions section
-    if (this.showStationModeOption) {
-      menuItems += `
-        <button class="menu-item" data-action="station-mode">
-          <ha-icon icon="mdi:tune-variant"></ha-icon>
-          <span>${L('overflow.station_mode')}</span>
-        </button>
-      `;
-    }
-
-    if (this.showStationInfoOption) {
-      menuItems += `
-        <button class="menu-item" data-action="station-info">
-          <ha-icon icon="mdi:information"></ha-icon>
-          <span>${L('overflow.manage_seeds')}</span>
-        </button>
-      `;
-    }
-
-    // Divider after station actions if they exist
-    if (this.showStationModeOption || this.showStationInfoOption) {
-      menuItems += `<div style="height: 1px; background: var(--divider-color, rgba(0, 0, 0, 0.1)); margin: 4px 0;"></div>`;
-    }
-
-    // Station management actions - Create Station
-    if (this.showCreateStationOption) {
-      menuItems += `
-        <button class="menu-item" data-action="create-station">
-          <ha-icon icon="mdi:plus-circle"></ha-icon>
-          <span>${L('overflow.create_station')}</span>
-        </button>
-      `;
-    }
-
-    // Station management actions - Add Music
-    if (this.showAddMusicOption) {
-      menuItems += `
-        <button class="menu-item" data-action="add-music">
-          <ha-icon icon="mdi:playlist-plus"></ha-icon>
-          <span>${L('overflow.add_music')}</span>
-        </button>
-      `;
-    }
-
-    // Station management actions
-    if (this.showRenameOption) {
-      menuItems += `
-        <button class="menu-item" data-action="rename-station">
-          <ha-icon icon="mdi:pencil"></ha-icon>
-          <span>${L('overflow.rename_station')}</span>
-        </button>
-      `;
-    }
-
-    if (this.showDeleteOption) {
-      menuItems += `
-        <button class="menu-item destructive" data-action="delete-station">
-          <ha-icon icon="mdi:delete"></ha-icon>
-          <span>${L('overflow.delete_station')}</span>
-        </button>
-      `;
-    }
-
-    // Divider before system actions
-    if (this.showStationOption || this.showRenameOption || this.showDeleteOption) {
-      menuItems += `<div style="height: 1px; background: var(--divider-color, rgba(0, 0, 0, 0.1)); margin: 4px 0;"></div>`;
-    }
-
-    // Station/System actions
-    if (this.showStationOption) {
-      menuItems += `
-        <button class="menu-item" data-action="select-station">
-          <ha-icon icon="mdi:radio"></ha-icon>
-          <span>${L('overflow.select_station')}</span>
-        </button>
-      `;
-    }
-
-    // QuickMix management (right after Select Station)
-    if (this.showQuickMixOption) {
-      menuItems += `
-        <button class="menu-item" data-action="quickmix">
-          <ha-icon icon="mdi:playlist-music"></ha-icon>
-          <span>${L('overflow.quickmix_settings')}</span>
-        </button>
-      `;
-    }
-
+    let accountBlock = '';
     if (this.showAccountSwitch) {
-      menuItems += `
+      accountBlock += `
         <button class="menu-item" data-action="switch-account">
           <ha-icon icon="mdi:account-switch"></ha-icon>
           <span>${L('overflow.switch_account')}</span>
         </button>
       `;
     }
+    if (this.showStationOption) {
+      accountBlock += `
+        <button class="menu-item" data-action="select-station">
+          <ha-icon icon="mdi:radio"></ha-icon>
+          <span>${L('overflow.select_station')}</span>
+        </button>
+      `;
+    }
+    if (accountBlock) {
+      segments.push(accountBlock);
+    }
+
+    let nowPlayingStation = '';
+    if (this.showExplainOption) {
+      nowPlayingStation += `
+        <button class="menu-item" data-action="explain-song">
+          <ha-icon icon="mdi:comment-question-outline"></ha-icon>
+          <span>${L('overflow.why_song')}</span>
+        </button>
+      `;
+    }
+    if (this.showUpcomingOption) {
+      nowPlayingStation += `
+        <button class="menu-item" data-action="show-upcoming">
+          <ha-icon icon="mdi:playlist-music"></ha-icon>
+          <span>${L('overflow.show_upcoming')}</span>
+        </button>
+      `;
+    }
+    if (this.showRatingsOption) {
+      nowPlayingStation += `
+        <button class="menu-item" data-action="select-ratings">
+          <ha-icon icon="mdi:thumbs-up-down-outline"></ha-icon>
+          <span>${L('overflow.song_ratings')}</span>
+        </button>
+      `;
+    }
+    if (this.showStationModeOption) {
+      nowPlayingStation += `
+        <button class="menu-item" data-action="station-mode">
+          <ha-icon icon="mdi:tune-variant"></ha-icon>
+          <span>${L('overflow.station_mode')}</span>
+        </button>
+      `;
+    }
+    if (this.showStationInfoOption) {
+      nowPlayingStation += `
+        <button class="menu-item" data-action="station-info">
+          <ha-icon icon="mdi:information"></ha-icon>
+          <span>${L('overflow.manage_seeds')}</span>
+        </button>
+      `;
+    }
+    if (nowPlayingStation) {
+      segments.push(nowPlayingStation);
+    }
+
+    let library = '';
+    if (this.showQuickMixOption) {
+      library += `
+        <button class="menu-item" data-action="quickmix">
+          <ha-icon icon="mdi:playlist-music"></ha-icon>
+          <span>${L('overflow.quickmix_settings')}</span>
+        </button>
+      `;
+    }
+    if (this.showCreateStationOption) {
+      library += `
+        <button class="menu-item" data-action="create-station">
+          <ha-icon icon="mdi:plus-circle"></ha-icon>
+          <span>${L('overflow.create_station')}</span>
+        </button>
+      `;
+    }
+    if (this.showAddMusicOption) {
+      library += `
+        <button class="menu-item" data-action="add-music">
+          <ha-icon icon="mdi:playlist-plus"></ha-icon>
+          <span>${L('overflow.add_music')}</span>
+        </button>
+      `;
+    }
+    if (this.showRenameOption) {
+      library += `
+        <button class="menu-item" data-action="rename-station">
+          <ha-icon icon="mdi:pencil"></ha-icon>
+          <span>${L('overflow.rename_station')}</span>
+        </button>
+      `;
+    }
+    if (this.showDeleteOption) {
+      library += `
+        <button class="menu-item destructive" data-action="delete-station">
+          <ha-icon icon="mdi:delete"></ha-icon>
+          <span>${L('overflow.delete_station')}</span>
+        </button>
+      `;
+    }
+    if (library) {
+      segments.push(library);
+    }
 
     const powerLabel = this.isOn ? L('overflow.disconnect') : L('overflow.connect');
-    menuItems += `
-      <button class="menu-item" data-action="more-info">
-        <ha-icon icon="mdi:information-outline"></ha-icon>
-        <span>${L('overflow.more_information')}</span>
-      </button>
+    // Connect / Disconnect first; More information last in the footer segment.
+    segments.push(`
       <button class="menu-item" data-action="power-toggle">
         <ha-icon icon="mdi:power"></ha-icon>
         <span>${powerLabel}</span>
       </button>
-    `;
+      <button class="menu-item" data-action="more-info">
+        <ha-icon icon="mdi:information-outline"></ha-icon>
+        <span>${L('overflow.more_information')}</span>
+      </button>
+    `);
+
+    let menuItems = segments.join(divider);
 
     if (this.buildTime) {
       const fallbackSuffix = this.usingSupportedActionsFallback ? L('overflow.entity_fallback') : '';
