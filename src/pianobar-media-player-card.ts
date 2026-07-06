@@ -680,7 +680,6 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const accounts = (entity.attributes.accounts as Array<{id: string; label: string}>) || [];
     const entityHasMultipleAccounts = accounts.length > 1;
     const overflowShowAccountSwitch =
-      sessionReady &&
       entityHasMultipleAccounts &&
       this._resolvedConfig?.showAccountSwitch !== false;
     const showStationOption = sessionReady && hasStations;
