@@ -238,7 +238,12 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     return entity.state === 'unavailable' || entity.state === 'unknown';
   }
 
-  /** Pandora session ended; user must reconnect (e.g. turn_on / Connect). */
+  /** Home Assistant WebSocket link to remote-pianobar (not Pandora session). */
+  private _isPlayerConnected(entity: HassEntity): boolean {
+    return entity.attributes.player_connected !== false;
+  }
+
+  /** Pandora session ended; resume via play, not WS Connect. */
   private _isPandoraDisconnected(entity: HassEntity): boolean {
     return !this._isUnavailable(entity) && entity.attributes.pandora_connected === false;
   }
@@ -340,19 +345,17 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const entity = this._getEntity();
     if (!entity || !this.hass) return;
 
-    const isOn = entity.state !== 'off' && entity.state !== 'unavailable';
-    const service = isOn ? 'turn_off' : 'turn_on';
-    
-    await this.hass.callService('media_player', service, undefined, {
+    const service = this._isPlayerConnected(entity) ? 'disconnect' : 'reconnect';
+    await this.hass.callService('pianobar', service, {}, {
       entity_id: entity.entity_id,
     });
   }
 
-  /** Same as overflow Connect: reconnect to Pandora via `turn_on`. */
+  /** Resume Pandora playback (player reconnects when Pandora session is down). */
   private async _handlePandoraReconnect(): Promise<void> {
     const entity = this._getEntity();
     if (!entity || !this.hass) return;
-    await this.hass.callService('media_player', 'turn_on', undefined, {
+    await this.hass.callService('media_player', 'media_play', undefined, {
       entity_id: entity.entity_id,
     });
   }
@@ -542,15 +545,15 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const playing = this._isPlaying(entity);
     const unavailable = this._isUnavailable(entity);
     const showPower = this._resolvedConfig?.showPowerButton ?? false;
-    const isOn = entity.state !== 'off' && entity.state !== 'unavailable';
+    const playerConnected = this._isPlayerConnected(entity);
 
     return html`
       <pmc-playback-controls
         .hass=${this.hass}
         .playing=${playing}
-        .disabled=${unavailable}
+        .disabled=${unavailable || !playerConnected}
         .showPower=${showPower}
-        .isOn=${isOn}
+        .isOn=${playerConnected}
         @play-pause=${this._handlePlayPause}
         @next-track=${this._handleNextTrack}
         @power-toggle=${this._handlePowerToggle}
@@ -594,6 +597,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const stationDisplay = this._resolvedConfig?.stationDisplay ?? 'hidden';
     // Only render in controls row for compact mode
     if (stationDisplay !== 'compact') return nothing;
+    if (!this._isPlayerConnected(entity)) return nothing;
 
     // Get stations from entity attributes
     const stations = (entity.attributes.stations as Station[]) || [];
@@ -631,10 +635,10 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const supported = this._getEffectiveSupportedActions();
     const stations = (entity.attributes.stations as Station[]) || [];
     const unavailable = this._isUnavailable(entity);
-    const isOn = entity.state !== 'off' && entity.state !== 'unavailable';
+    const playerConnected = this._isPlayerConnected(entity);
     const pandoraSessionUp =
-      !unavailable && !this._isPandoraDisconnected(entity);
-    const sessionReady = pandoraSessionUp && isOn;
+      playerConnected && !this._isPandoraDisconnected(entity);
+    const sessionReady = pandoraSessionUp;
     const hasStations = stations.length > 0;
     const currentStation = stations.find(s => s.id === entity.attributes.media_content_id);
     const stationSelected = !!currentStation;
@@ -680,10 +684,10 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     const accounts = (entity.attributes.accounts as Array<{id: string; label: string}>) || [];
     const entityHasMultipleAccounts = accounts.length > 1;
     const overflowShowAccountSwitch =
-      sessionReady &&
+      playerConnected &&
       entityHasMultipleAccounts &&
       this._resolvedConfig?.showAccountSwitch !== false;
-    const showStationOption = sessionReady && hasStations;
+    const showStationOption = playerConnected && hasStations;
 
     return html`
       <pmc-overflow-menu
@@ -702,7 +706,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         .showRenameOption=${showRename}
         .showDeleteOption=${showDelete}
         .showAccountSwitch=${overflowShowAccountSwitch}
-        .isOn=${isOn}
+        .isOn=${playerConnected}
         .disabled=${this._isUnavailable(entity)}
         .buildTime=${__BUILD_TIMESTAMP__}
         .usingSupportedActionsFallback=${this._isUsingSupportedActionsFallback()}
@@ -775,6 +779,9 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   }
 
   private _handleOpenStationPopup(e: Event): void {
+    const entity = this._getEntity();
+    if (!entity || !this._isPlayerConnected(entity)) return;
+
     let anchorPosition = (e as CustomEvent).detail?.anchorPosition;
     
     // If no anchor position provided, calculate it from the clicked element
@@ -952,6 +959,8 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   // Account switching handlers
   private async _handleOpenAccountPopup(e: CustomEvent): Promise<void> {
     if (this._resolvedConfig?.showAccountSwitch === false) return;
+    const entity = this._getEntity();
+    if (!entity || !this._isPlayerConnected(entity)) return;
 
     this._openAccountPopup = false;
     await this.updateComplete;
@@ -1672,6 +1681,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
     // In other modes, only render when _stationPopupOpen is true
     const shouldRender = stationDisplay === 'normal' || this._stationPopupOpen;
     if (!shouldRender) return nothing;
+    if (!this._isPlayerConnected(entity)) return nothing;
 
     const stations = (entity.attributes.stations as Station[]) || [];
     if (stations.length === 0) return nothing;
@@ -1931,6 +1941,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   private _renderStationPill(entity: HassEntity): TemplateResult | typeof nothing {
     const stationDisplay = this._resolvedConfig?.stationDisplay ?? 'hidden';
     if (stationDisplay === 'hidden') return nothing;
+    if (!this._isPlayerConnected(entity)) return nothing;
 
     const stations = (entity.attributes.stations as Station[]) || [];
     if (stations.length === 0) return nothing;
