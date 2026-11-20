@@ -16,8 +16,9 @@ import {
   SearchResults,
   GenreCategory,
 } from './types';
-import { cardLocalize } from './i18n';
-import { shouldToastBusy } from './utils/notices';
+import { cardLocalize, cardLocalizeFormat } from './i18n';
+import { shouldToastBusy, isVersionBannerDismissed, dismissVersionBanner } from './utils/notices';
+import { versionMismatch } from './version-check';
 
 // Import components
 import './components/playback-controls';
@@ -37,11 +38,10 @@ import './components/create-station-modal';
 import './components/account-selector-popup';
 import './pianobar-card-editor';
 
-// Card registration info
-const CARD_VERSION = '1.0.0';
-
-// Build timestamp injected by rollup at build time
+// Build timestamp and package.json version injected by rollup at build time
 declare const __BUILD_TIMESTAMP__: string;
+declare const __CARD_VERSION__: string;
+const CARD_VERSION = typeof __CARD_VERSION__ !== 'undefined' ? __CARD_VERSION__ : 'dev';
 
 console.info(
   `%c PIANOBAR-MEDIA-PLAYER-CARD %c ${CARD_VERSION} `,
@@ -94,6 +94,8 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   /** Previous `player_busy` for the one-shot busy toast (false → true only). */
   private _prevPlayerBusy: boolean | undefined = undefined;
   
+  @state() private _versionBannerDismissed = false;
+
   private _createStationModalRef: Ref<any> = createRef();
 
   private _resizeObserver?: ResizeObserver;
@@ -268,6 +270,39 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
   /** Pandora session ended; resume via play, not WS Connect. */
   private _isPandoraDisconnected(entity: HassEntity): boolean {
     return !this._isUnavailable(entity) && entity.attributes.pandora_connected === false;
+  }
+
+  private _renderVersionMismatchBanner(entity: HassEntity): TemplateResult | typeof nothing {
+    if (this._isUnavailable(entity)) return nothing;
+    const integrationVersion = entity.attributes.integration_version as string | undefined;
+    if (!versionMismatch(CARD_VERSION, integrationVersion)) return nothing;
+    if (this._versionBannerDismissed || isVersionBannerDismissed(CARD_VERSION, integrationVersion)) {
+      return nothing;
+    }
+    return html`
+      <div class="version-mismatch-banner" role="alert" aria-live="polite">
+        <ha-icon class="version-mismatch-icon" icon="mdi:alert-outline"></ha-icon>
+        <div class="version-mismatch-text">
+          <span>${cardLocalizeFormat(this.hass, 'card.version_mismatch', {
+            card_version: CARD_VERSION,
+            integration_version:
+              integrationVersion || cardLocalize(this.hass, 'card.version_unknown'),
+          })}</span>
+        </div>
+        <button
+          type="button"
+          class="version-mismatch-dismiss"
+          title=${cardLocalize(this.hass, 'card.version_mismatch_dismiss')}
+          aria-label=${cardLocalize(this.hass, 'card.version_mismatch_dismiss')}
+          @click=${() => {
+            dismissVersionBanner(CARD_VERSION, integrationVersion);
+            this._versionBannerDismissed = true;
+          }}
+        >
+          <ha-icon icon="mdi:close"></ha-icon>
+        </button>
+      </div>
+    `;
   }
 
   private _renderPandoraDisconnectBanner(entity: HassEntity): TemplateResult | typeof nothing {
@@ -2057,6 +2092,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         class="${cardClasses}"
       >
         ${this._renderOverflowMenu(entity)}
+        ${this._renderVersionMismatchBanner(entity)}
         ${this._renderPandoraDisconnectBanner(entity)}
 
         ${isTallArtwork
