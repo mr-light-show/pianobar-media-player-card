@@ -17,6 +17,7 @@ import {
   GenreCategory,
 } from './types';
 import { cardLocalize } from './i18n';
+import { shouldToastBusy } from './utils/notices';
 
 // Import components
 import './components/playback-controls';
@@ -90,6 +91,8 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
   /** Previous `pandora_connected` for one-shot disconnect toast (true → false only). */
   private _prevPandoraConnected: boolean | undefined = undefined;
+  /** Previous `player_busy` for the one-shot busy toast (false → true only). */
+  private _prevPlayerBusy: boolean | undefined = undefined;
   
   private _createStationModalRef: Ref<any> = createRef();
 
@@ -118,6 +121,7 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
     if (this._config?.entity !== config.entity) {
       this._prevPandoraConnected = undefined;
+      this._prevPlayerBusy = undefined;
     }
     this._config = config;
     this._resolvedConfig = resolveConfig(config);
@@ -206,6 +210,24 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
         );
       }
       this._prevPandoraConnected = connected;
+    }
+
+    // One-shot toast: player_busy false → true (command queue refused a request)
+    if (entity && this.hass && !this._isUnavailable(entity)) {
+      const busy = entity.attributes.player_busy === true;
+      if (shouldToastBusy(this._prevPlayerBusy, busy)) {
+        this.dispatchEvent(
+          new CustomEvent('hass-notification', {
+            detail: {
+              message: cardLocalize(this.hass, 'card.toast_player_busy'),
+              duration: 6000,
+            },
+            bubbles: true,
+            composed: true,
+          })
+        );
+      }
+      this._prevPlayerBusy = busy;
     }
   }
 

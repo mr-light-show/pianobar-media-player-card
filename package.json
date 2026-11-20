@@ -9,7 +9,8 @@
     "watch": "rollup -c -w",
     "deploy": "./scripts/deploy.sh",
     "lint": "eslint src --ext .ts",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "test": "rm -rf .test-build && tsc src/utils/notices.ts --rootDir src --outDir .test-build --module esnext --target es2021 --moduleResolution node --strict --skipLibCheck && node --test --experimental-test-coverage \"test/*.test.mjs\""
   },
   "keywords": [
     "home-assistant",

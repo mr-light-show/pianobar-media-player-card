@@ -84,6 +84,7 @@
   "card.pandora_disconnected_banner": "Not connected to Pandora. Use Play or Reconnect to resume.",
   "card.pandora_disconnected_reconnect": "Play",
   "card.toast_pandora_disconnected": "Not connected to Pandora. Use Play to resume.",
+  "card.toast_player_busy": "The player is busy. Try again in a moment.",
   "card.no_explanation": "No explanation available",
   "card.error_quickmix": "Error updating QuickMix settings",
   "card.error_rename": "Error renaming station",
