@@ -1,6 +1,6 @@
 {
   "name": "pianobar-media-player-card",
-  "version": "1.0.0",
+  "version": "3.0.0-dev.1",
   "type": "module",
   "description": "Custom Home Assistant Lovelace card for Pianobar media player",
   "main": "dist/pianobar-media-player-card.js",
