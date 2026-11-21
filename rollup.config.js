@@ -4,8 +4,10 @@ import json from '@rollup/plugin-json';
 import typescript from '@rollup/plugin-typescript';
 import terser from '@rollup/plugin-terser';
 import replace from '@rollup/plugin-replace';
+import { readFileSync } from 'node:fs';
 
 const production = !process.env.ROLLUP_WATCH;
+const cardVersion = JSON.parse(readFileSync('./package.json', 'utf8')).version;
 const buildTimestamp = new Date().toISOString();
 
 export default {
@@ -20,6 +22,7 @@ export default {
     replace({
       preventAssignment: true,
       __BUILD_TIMESTAMP__: JSON.stringify(buildTimestamp),
+      __CARD_VERSION__: JSON.stringify(cardVersion),
     }),
     resolve(),
     commonjs(),

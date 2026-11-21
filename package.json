@@ -1,6 +1,6 @@
 {
   "name": "pianobar-media-player-card",
-  "version": "1.0.0",
+  "version": "3.0.0-dev.1",
   "type": "module",
   "description": "Custom Home Assistant Lovelace card for Pianobar media player",
   "main": "dist/pianobar-media-player-card.js",
@@ -9,7 +9,8 @@
     "watch": "rollup -c -w",
     "deploy": "./scripts/deploy.sh",
     "lint": "eslint src --ext .ts",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "test": "rm -rf .test-build && tsc src/version-check.ts src/utils/notices.ts --rootDir src --outDir .test-build --module esnext --target es2021 --moduleResolution node --strict --skipLibCheck && node --test --experimental-test-coverage \"test/*.test.mjs\""
   },
   "keywords": [
     "home-assistant",
