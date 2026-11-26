@@ -281,6 +281,51 @@ export const cardStyles = css`
     outline-offset: 2px;
   }
 
+  /* Card / integration major-version mismatch — dismissible warning banner */
+  .version-mismatch-banner {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    margin: 0;
+    background-color: rgba(var(--rgb-warning-color, 255, 152, 0), 0.14);
+    color: var(--primary-text-color);
+    border-bottom: 1px solid var(--warning-color, #ff9800);
+    font-size: 0.875rem;
+    line-height: 1.35;
+    box-sizing: border-box;
+  }
+
+  .version-mismatch-icon {
+    flex-shrink: 0;
+    color: var(--warning-color, #ff9800);
+    --mdc-icon-size: 22px;
+  }
+
+  .version-mismatch-text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .version-mismatch-dismiss {
+    flex-shrink: 0;
+    margin-left: auto;
+    padding: 2px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--primary-text-color);
+    cursor: pointer;
+    --mdc-icon-size: 20px;
+  }
+
+  .version-mismatch-dismiss:focus-visible {
+    outline: 2px solid var(--warning-color, #ff9800);
+    outline-offset: 2px;
+  }
+
   /* Controls section */
   .controls-section {
     position: relative;
