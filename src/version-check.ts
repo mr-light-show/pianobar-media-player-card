@@ -18,3 +18,19 @@ export function versionMismatch(card: string, integration: string | undefined): 
   if (integrationMajor === null) return false;
   return cardMajor !== integrationMajor;
 }
+
+/** Attributes only the pianobar integration sets; used when the entity registry is unavailable. */
+const PIANOBAR_ATTRIBUTES = ['supported_actions', 'stations', 'player_connected', 'pandora_connected'];
+
+/**
+ * True when the entity belongs to the pianobar integration. Prefers the entity registry
+ * platform (`hass.entities`); falls back to pianobar-only attributes so an older
+ * integration without `integration_version` is still recognized.
+ */
+export function isPianobarEntity(
+  platform: string | undefined,
+  attributes: Record<string, unknown> | undefined
+): boolean {
+  if (platform) return platform === 'pianobar';
+  return PIANOBAR_ATTRIBUTES.some((key) => attributes?.[key] !== undefined);
+}

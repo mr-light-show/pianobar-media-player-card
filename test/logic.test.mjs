@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { majorOf, versionMismatch } from '../.test-build/version-check.js';
+import { isPianobarEntity, majorOf, versionMismatch } from '../.test-build/version-check.js';
 import {
   shouldToastBusy,
   isVersionBannerDismissed,
@@ -30,6 +30,15 @@ test('versionMismatch compares majors only', () => {
   assert.equal(versionMismatch('3.0.0', 'dev'), false);
   assert.equal(versionMismatch('dev', '3.0.0'), false);
   assert.equal(versionMismatch('dev', undefined), false);
+});
+
+test('isPianobarEntity prefers registry platform, else pianobar-only attributes', () => {
+  assert.equal(isPianobarEntity('pianobar', {}), true);
+  assert.equal(isPianobarEntity('sonos', { supported_actions: [] }), false);
+  assert.equal(isPianobarEntity(undefined, { stations: [] }), true);
+  assert.equal(isPianobarEntity(undefined, { player_connected: false }), true);
+  assert.equal(isPianobarEntity(undefined, { friendly_name: 'TV' }), false);
+  assert.equal(isPianobarEntity(undefined, undefined), false);
 });
 
 test('shouldToastBusy fires once per busy episode', () => {

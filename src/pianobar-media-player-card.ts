@@ -18,7 +18,7 @@ import {
 } from './types';
 import { cardLocalize, cardLocalizeFormat } from './i18n';
 import { shouldToastBusy, isVersionBannerDismissed, dismissVersionBanner } from './utils/notices';
-import { versionMismatch } from './version-check';
+import { isPianobarEntity, versionMismatch } from './version-check';
 
 // Import components
 import './components/playback-controls';
@@ -274,6 +274,16 @@ export class PianobarMediaPlayerCard extends LitElement implements LovelaceCard 
 
   private _renderVersionMismatchBanner(entity: HassEntity): TemplateResult | typeof nothing {
     if (this._isUnavailable(entity)) return nothing;
+    const registry = (this.hass as unknown as { entities?: Record<string, { platform?: string }> })
+      .entities;
+    if (
+      !isPianobarEntity(
+        registry?.[entity.entity_id]?.platform,
+        entity.attributes as Record<string, unknown>
+      )
+    ) {
+      return nothing;
+    }
     const integrationVersion = entity.attributes.integration_version as string | undefined;
     if (!versionMismatch(CARD_VERSION, integrationVersion)) return nothing;
     if (this._versionBannerDismissed || isVersionBannerDismissed(CARD_VERSION, integrationVersion)) {
